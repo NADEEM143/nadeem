@@ -117,9 +117,7 @@
                 <input type="range" min="1" max="3" value="2" style="width: 100%; accent-color: var(--brand-accent); margin: 20px 0;" oninput="updateCompLabel(this.value)">
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer">
-                    <p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p>
-                </div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -137,16 +135,13 @@
         function runTool(tool) { 
             currentTool = tool; 
             picker.value = ""; 
-            
-            // STRICT FILE FILTERING
             if (tool === 'officepdf') picker.accept = ".doc,.docx";
             else if (tool === 'imagepdf') picker.accept = "image/*";
-            else if (tool === 'pdfword' || tool === 'compress') picker.accept = ".pdf";
-            
+            else picker.accept = ".pdf";
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; }
+        function closeModal() { overlay.style.display = 'none'; picker.value = ""; }
         function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
@@ -170,12 +165,8 @@
                 overlay.style.display = 'flex';
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
                 document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
-                
-                if (currentTool === 'imagepdf') {
-                    await generateMergePreview();
-                } else {
-                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFiles[0].name}</p></div>`;
-                }
+                if (currentTool === 'imagepdf') await generateMergePreview();
+                else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFiles[0].name}</p></div>`;
             }
         };
 
@@ -202,7 +193,8 @@
                     status.innerText = "UPLOADING ASSETS...";
                     const fd = new FormData(); fd.append('task', task);
                     if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
-                    else for (let f of selectedFiles) fd.append('file', f);
+                    else fd.append('file', selectedFiles[0]); // CORS FIX: Sending actual file
+
                     await fetch(`https://${server}/v1/upload`, { method: 'POST', body: fd });
                     status.innerText = "ENGINEERING DOCUMENT...";
                     await fetch(`https://${server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool, task: task }) });
