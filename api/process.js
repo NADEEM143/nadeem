@@ -23,7 +23,7 @@ module.exports = async (req, res) => {
 
         // STEP 2: START TASK HANDSHAKE
         // FIXED: Added missing curly brace in template literal and corrected URL to /v1/start/
-        const startResponse = await axios.get(`https://ilovepdf.com{tool}`, {
+        const startResponse = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
