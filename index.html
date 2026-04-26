@@ -7,9 +7,9 @@
     <style>
         /* --- ELITE PREMIUM DESIGN SYSTEM --- */
         :root {
-            --brand-accent: #6366f1;
-            --midnight: #020617;
-            --slate-pro: #0f172a;
+            --brand-accent: #6366f1; /* Electric Indigo */
+            --midnight: #020617; /* Obsidian Base */
+            --slate-pro: #0f172a; /* Card Base */
             --glass-border: rgba(255, 255, 255, 0.08);
             --text-primary: #f8fafc;
             --text-dim: #94a3b8;
@@ -67,10 +67,14 @@
         }
 
         .card { 
-            background: var(--slate-pro); padding: 50px 40px; border-radius: 32px; 
-            border: 1px solid var(--glass-border); cursor: pointer; 
+            background: var(--slate-pro);
+            padding: 50px 40px; 
+            border-radius: 32px; 
+            border: 1px solid var(--glass-border);
+            cursor: pointer; 
             transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            position: relative; overflow: hidden;
+            position: relative;
+            overflow: hidden;
         }
 
         .card:hover { 
@@ -89,15 +93,19 @@
         .card h3 { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
         .card p { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
 
+        /* ELITE MODAL SYSTEM */
         #overlay { 
-            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.85); 
-            backdrop-filter: blur(20px); z-index: 200; display: none; 
-            align-items: center; justify-content: center; padding: 20px; 
+            position: fixed; inset: 0; 
+            background: rgba(2, 6, 23, 0.85); 
+            backdrop-filter: blur(20px); 
+            z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; 
         }
         
         .modal-box { 
-            background: var(--slate-pro); width: 100%; max-width: 750px; 
-            border-radius: 40px; padding: 50px; border: 1px solid var(--glass-border);
+            background: var(--slate-pro); 
+            width: 100%; max-width: 750px; 
+            border-radius: 40px; padding: 50px; 
+            border: 1px solid var(--glass-border);
             box-shadow: 0 100px 150px -50px rgba(0,0,0,0.8);
         }
         
@@ -115,9 +123,10 @@
         .q-slider { width: 100%; accent-color: var(--brand-accent); height: 6px; cursor: pointer; }
         
         .review-window { 
-            width: 100%; background: rgba(0,0,0,0.2); border-radius: 24px; margin: 30px 0; 
-            border: 1px solid var(--glass-border); display: flex; align-items: center; 
-            justify-content: center; min-height: 250px; 
+            width: 100%; background: rgba(0,0,0,0.2); 
+            border-radius: 24px; margin: 30px 0; 
+            border: 1px solid var(--glass-border); 
+            display: flex; align-items: center; justify-content: center; min-height: 250px; 
         }
         .review-window img { max-width: 100%; max-height: 400px; border-radius: 12px; }
 
@@ -131,7 +140,8 @@
         .cta-btn { 
             background: #fff; color: var(--midnight); width: 100%; padding: 22px; 
             border: none; border-radius: 18px; font-weight: 900; cursor: pointer; 
-            font-size: 16px; transition: 0.4s; letter-spacing: -0.5px; margin-top: 20px;
+            font-size: 16px; transition: 0.4s; letter-spacing: -0.5px;
+            margin-top: 20px;
         }
         .cta-btn:hover { background: var(--brand-accent); color: white; transform: translateY(-3px); }
     </style>
@@ -152,21 +162,25 @@
     </div>
 
     <div class="tool-grid">
+        <!-- UNIFY: Image to PDF -->
         <div class="card" onclick="runTool('imagepdf', 'merged.jpg')">
             <div class="icon-box" style="color: #10b981;">UNIFY</div>
             <h3>Image Consolidation</h3>
             <p>Combine high-resolution visual assets into a singular high-fidelity JPEG.</p>
         </div>
-        <div class="card" onclick="runTool('pdf', 'document.pdf')">
+        <!-- SOURCE: Word to PDF -->
+        <div class="card" onclick="runTool('officepdf', 'document.pdf')">
             <div class="icon-box" style="color: #6366f1;">SOURCE</div>
             <h3>Word to PDF</h3>
             <p>Execute enterprise-grade conversion from DOCX to PDF.</p>
         </div>
-        <div class="card" onclick="runTool('docx', 'document.docx')">
+        <!-- FLOW: PDF to Word -->
+        <div class="card" onclick="runTool('pdfword', 'document.docx')">
             <div class="icon-box" style="color: #3b82f6;">FLOW</div>
             <h3>PDF to Word</h3>
             <p>Deconstruct and refactor PDF architecture into fully editable Word documents.</p>
         </div>
+        <!-- PACK: Neural Compression -->
         <div class="card" onclick="runTool('compress', 'optimized.pdf')">
             <div class="icon-box" style="color: #f43f5e;">PACK</div>
             <h3>Neural Compression</h3>
@@ -192,9 +206,9 @@
             <div id="compressConfig" class="config-section" style="display:none;">
                 <span class="section-label">Optimization Intensity</span>
                 <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; margin-bottom: 10px;">
-                    <span style="color: var(--text-dim);">Target Density</span><span id="qVal" style="color: var(--brand-accent);">Maximum Reduction</span>
+                    <span style="color: var(--text-dim);">Target Density</span><span id="qVal" style="color: var(--brand-accent);">Recommended</span>
                 </div>
-                <input type="range" min="1" max="3" value="1" class="q-slider" id="compSlider" oninput="updateCompLabel(this.value)">
+                <input type="range" min="1" max="3" value="2" class="q-slider" id="compSlider" oninput="updateCompLabel(this.value)">
                 <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; color: #475569; letter-spacing: 1.5px; margin-top: 10px;">
                     <span>NEURAL</span><span>BALANCED</span><span>LIGHT</span>
                 </div>
@@ -225,10 +239,17 @@
         function runTool(tool, out) { 
             currentTool = tool; 
             currentOutName = out; 
+            
+            // Critical Fix: Reset picker for local storage selection
             picker.value = ""; 
-            if (tool === 'docx') picker.accept = ".pdf";
+            
+            // Tool-specific file filters
+            if (tool === 'officepdf') picker.accept = ".doc,.docx";
             else if (tool === 'imagepdf') picker.accept = "image/*";
-            else picker.accept = ".docx,.doc,.pdf";
+            else if (tool === 'pdfword') picker.accept = ".pdf";
+            else if (tool === 'compress') picker.accept = ".pdf";
+            else picker.accept = ".pdf,.docx,.doc";
+            
             picker.click(); 
         }
 
@@ -244,15 +265,18 @@
         function updateCompLabel(v) {
             const labels = ["Maximum Reduction", "Recommended", "Light Reduction"];
             const qVal = document.getElementById('qVal');
-            if(qVal) qVal.innerText = labels[v-1];
+            if (qVal) qVal.innerText = labels[v-1];
         }
 
         picker.onchange = async function() {
             selectedFiles = Array.from(this.files);
             if (selectedFiles.length === 0) return;
             overlay.style.display = 'flex';
+            
+            // Toggle Config Sections
             document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
             document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
+            
             if (currentTool === 'imagepdf') generateMergePreview();
             else reviewContainer.innerHTML = '<p style="color: var(--brand-accent); font-weight: 800; font-size: 14px;">SECURE HANDSHAKE ESTABLISHED</p>';
         };
@@ -282,25 +306,31 @@
             status.style.display = 'block';
             status.innerText = "INITIATING SECURE HANDSHAKE...";
             try {
-                // FIXED: Vercel path is /api/process
+                // Pointing to Vercel API Path
                 const response = await fetch('/api/process', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ tool: currentTool })
                 });
+                
                 const data = await response.json();
-                if (data.id || data.status) {
+                
+                if (data.status === "SUCCESS") {
                     status.style.background = "#10b981";
                     status.innerText = "ELITE HANDSHAKE SUCCESSFUL";
+                    
                     setTimeout(() => {
-                        alert("Handshake Success! Session: " + (data.id || "ACTIVE"));
+                        alert("iLovePDF Handshake Success! Task ID: " + data.task);
                         status.style.display = 'none';
                         status.style.background = "var(--brand-accent)";
                         closeModal();
                     }, 1500);
-                } else { throw new Error("Invalid Handshake"); }
+                } else {
+                    throw new Error("Invalid Handshake");
+                }
+
             } catch (err) {
-                status.innerText = "ENGINE ERROR. CHECK API LOGS.";
+                status.innerText = "ENGINE ERROR. CHECK API KEYS.";
                 setTimeout(() => status.style.display = 'none', 3000);
             }
         }
