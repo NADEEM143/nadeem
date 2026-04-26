@@ -7,143 +7,50 @@
     <style>
         /* --- ELITE PREMIUM DESIGN SYSTEM --- */
         :root {
-            --brand-accent: #6366f1; /* Electric Indigo */
-            --midnight: #020617; /* Obsidian Base */
-            --slate-pro: #0f172a; /* Card Base */
+            --brand-accent: #6366f1;
+            --midnight: #020617;
+            --slate-pro: #0f172a;
             --glass-border: rgba(255, 255, 255, 0.08);
             --text-primary: #f8fafc;
             --text-dim: #94a3b8;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
-        
-        body { 
-            background-color: var(--midnight);
-            background-image: 
-                radial-gradient(at 0% 0%, hsla(243, 75%, 59%, 0.1) 0, transparent 40%),
-                radial-gradient(at 100% 100%, hsla(243, 75%, 59%, 0.05) 0, transparent 40%);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--midnight); color: var(--text-primary); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 
-        nav { 
-            background: rgba(2, 6, 23, 0.7); 
-            backdrop-filter: blur(20px); 
-            padding: 20px 80px; 
-            border-bottom: 1px solid var(--glass-border);
-            display: flex; align-items: center; justify-content: space-between;
-            position: sticky; top: 0; z-index: 100;
-        }
-
+        nav { background: rgba(2, 6, 23, 0.7); backdrop-filter: blur(20px); padding: 20px 80px; border-bottom: 1px solid var(--glass-border); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
         .logo-wrap { display: flex; align-items: center; gap: 15px; cursor: pointer; }
-        
-        .logo-icon { 
-            width: 42px; height: 42px; 
-            background: linear-gradient(135deg, var(--brand-accent), #4338ca); 
-            display: flex; align-items: center; justify-content: center; 
-            font-weight: 900; font-size: 22px; color: white;
-            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3);
-        }
-        
+        .logo-icon { width: 42px; height: 42px; background: linear-gradient(135deg, var(--brand-accent), #4338ca); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 22px; color: white; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
         .logo-text { font-size: 24px; font-weight: 800; letter-spacing: -1.5px; }
         .logo-text span { opacity: 0.5; font-weight: 400; }
 
-        .hero { padding: 100px 20px 80px; text-align: center; }
-        .hero h1 { 
-            font-size: 64px; font-weight: 900; letter-spacing: -3px; line-height: 1;
-            background: linear-gradient(to bottom, #fff 40%, #64748b);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-            margin-bottom: 25px;
-        }
-        .hero p { font-size: 20px; color: var(--text-dim); max-width: 700px; margin: 0 auto; font-weight: 400; }
+        .hero { padding: 100px 20px 60px; text-align: center; }
+        .hero h1 { font-size: 64px; font-weight: 900; letter-spacing: -3px; line-height: 1.1; background: linear-gradient(to bottom, #fff 40%, #64748b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        .tool-grid { 
-            max-width: 1300px; margin: 0 auto; 
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-            gap: 24px; padding: 0 40px 120px; 
-        }
-
-        .card { 
-            background: var(--slate-pro);
-            padding: 50px 40px; 
-            border-radius: 32px; 
-            border: 1px solid var(--glass-border);
-            cursor: pointer; 
-            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card:hover { 
-            transform: translateY(-12px) scale(1.02);
-            border-color: rgba(99, 102, 241, 0.4);
-            box-shadow: 0 40px 80px -20px rgba(0,0,0,0.5);
-        }
-
-        .icon-box { 
-            width: 50px; height: 50px; border-radius: 14px; 
-            margin-bottom: 35px; display: flex; align-items: center; justify-content: center; 
-            font-weight: 800; font-size: 10px; letter-spacing: 1px;
-            background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
-        }
-
-        .card h3 { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
-        .card p { font-size: 15px; color: var(--text-dim); line-height: 1.6; }
-
-        /* ELITE MODAL SYSTEM */
-        #overlay { 
-            position: fixed; inset: 0; 
-            background: rgba(2, 6, 23, 0.85); 
-            backdrop-filter: blur(20px); 
-            z-index: 200; display: none; align-items: center; justify-content: center; padding: 20px; 
-        }
+        .tool-grid { max-width: 1400px; margin: 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 0 40px 100px; }
+        .card { background: var(--slate-pro); padding: 40px 30px; border-radius: 32px; border: 1px solid var(--glass-border); cursor: pointer; transition: 0.4s; height: 100%; }
+        .card:hover { transform: translateY(-10px); border-color: var(--brand-accent); background: rgba(15, 23, 42, 0.8); }
         
-        .modal-box { 
-            background: var(--slate-pro); 
-            width: 100%; max-width: 750px; 
-            border-radius: 40px; padding: 50px; 
-            border: 1px solid var(--glass-border);
-            box-shadow: 0 100px 150px -50px rgba(0,0,0,0.8);
-        }
-        
-        .config-section { margin-top: 35px; padding-top: 35px; border-top: 1px solid var(--glass-border); }
-        .section-label { font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: var(--brand-accent); margin-bottom: 20px; display: block; }
-        
-        .btn-group { display: flex; gap: 15px; }
-        .opt-btn { 
-            flex: 1; padding: 20px; border-radius: 18px; 
-            border: 1px solid var(--glass-border); background: rgba(255,255,255,0.02); 
-            cursor: pointer; text-align: center; font-weight: 700; color: var(--text-dim); transition: 0.3s;
-        }
-        .opt-btn.active { border-color: var(--brand-accent); background: rgba(99, 102, 241, 0.1); color: white; }
+        /* CONTACT SECTION */
+        .contact-footer { padding: 60px 40px; border-top: 1px solid var(--glass-border); text-align: center; background: rgba(15, 23, 42, 0.3); }
+        .contact-wrap { max-width: 600px; margin: 0 auto; }
+        .contact-title { font-size: 24px; font-weight: 800; margin-bottom: 10px; }
+        .contact-email { color: var(--brand-accent); font-weight: 700; text-decoration: none; font-size: 18px; transition: 0.3s; }
+        .contact-email:hover { filter: brightness(1.2); }
 
-        .q-slider { width: 100%; accent-color: var(--brand-accent); height: 6px; cursor: pointer; }
+        #overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(25px); z-index: 200; display: none; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
+        .modal-box { background: var(--slate-pro); width: 100%; max-width: 650px; border-radius: 40px; padding: 50px; border: 1px solid var(--glass-border); }
+
+        .config-section { margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--glass-border); }
+        .section-label { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand-accent); margin-bottom: 20px; display: block; }
         
-        .review-window { 
-            width: 100%; background: rgba(0,0,0,0.2); 
-            border-radius: 24px; margin: 30px 0; 
-            border: 1px solid var(--glass-border); 
-            display: flex; align-items: center; justify-content: center; min-height: 250px; 
-        }
-        .review-window img { max-width: 100%; max-height: 400px; border-radius: 12px; }
+        .review-window { padding: 20px; border-radius: 24px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); min-height: 150px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .review-window img { max-width: 100%; max-height: 250px; border-radius: 12px; object-fit: contain; }
 
-        #status { 
-            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
-            background: var(--brand-accent); color: #fff; padding: 18px 40px; 
-            border-radius: 100px; display: none; font-weight: 800; font-size: 13px; letter-spacing: 1px;
-            z-index: 300; box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4);
-        }
+        .cta-btn { background: #fff; color: var(--midnight); width: 100%; padding: 22px; border: none; border-radius: 18px; font-weight: 900; cursor: pointer; margin-top: 25px; transition: 0.3s; font-size: 16px; }
+        .cta-btn:hover { background: var(--brand-accent); color: white; }
 
-        .cta-btn { 
-            background: #fff; color: var(--midnight); width: 100%; padding: 22px; 
-            border: none; border-radius: 18px; font-weight: 900; cursor: pointer; 
-            font-size: 16px; transition: 0.4s; letter-spacing: -0.5px;
-            margin-top: 20px;
-        }
-        .cta-btn:hover { background: var(--brand-accent); color: white; transform: translateY(-3px); }
+        #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--brand-accent); color: #fff; padding: 18px 40px; border-radius: 100px; display: none; font-weight: 800; z-index: 300; }
     </style>
 </head>
 <body>
@@ -156,69 +63,68 @@
         <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px; color: var(--brand-accent); text-transform: uppercase;">PRO EDITION 2026</div>
     </nav>
 
-    <div class="hero">
-        <h1>Intelligent Document <br>Engineering.</h1>
-        <p>Experience ultra-high fidelity document management. Elite tools optimized for speed and complete security.</p>
-    </div>
+    <div class="hero"><h1>Intelligent Document <br>Engineering.</h1></div>
 
     <div class="tool-grid">
-        <!-- UNIFY: Image to PDF -->
         <div class="card" onclick="runTool('imagepdf', 'merged.jpg')">
-            <div class="icon-box" style="color: #10b981;">UNIFY</div>
+            <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
             <h3>Image Consolidation</h3>
-            <p>Combine high-resolution visual assets into a singular high-fidelity JPEG.</p>
+            <p>Combine up to 100 assets into a high-fidelity output.</p>
         </div>
-        <!-- SOURCE: Word to PDF -->
         <div class="card" onclick="runTool('officepdf', 'document.pdf')">
-            <div class="icon-box" style="color: #6366f1;">SOURCE</div>
+            <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
             <h3>Word to PDF</h3>
-            <p>Execute enterprise-grade conversion from DOCX to PDF.</p>
+            <p>Enterprise conversion from DOCX to PDF.</p>
         </div>
-        <!-- FLOW: PDF to Word -->
         <div class="card" onclick="runTool('pdfword', 'document.docx')">
-            <div class="icon-box" style="color: #3b82f6;">FLOW</div>
+            <div style="color: #3b82f6; font-weight: 800; font-size: 10px; margin-bottom: 20px;">FLOW</div>
             <h3>PDF to Word</h3>
-            <p>Deconstruct and refactor PDF architecture into fully editable Word documents.</p>
+            <p>Refactor PDF architecture into editable Word files.</p>
         </div>
-        <!-- PACK: Neural Compression -->
         <div class="card" onclick="runTool('compress', 'optimized.pdf')">
-            <div class="icon-box" style="color: #f43f5e;">PACK</div>
+            <div style="color: #f43f5e; font-weight: 800; font-size: 10px; margin-bottom: 20px;">PACK</div>
             <h3>Neural Compression</h3>
-            <p>Aggressive binary reconstruction to physically minimize file footprint.</p>
+            <p>Minimize footprint via binary reconstruction.</p>
         </div>
     </div>
+
+    <!-- EASY CONTACT SECTION -->
+    <footer class="contact-footer">
+        <div class="contact-wrap">
+            <h3 class="contact-title">Need Technical Support?</h3>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
+            <a href="call on:9718439786" class="contact-email">9718439786</a>
+        </div>
+    </footer>
 
     <div id="overlay">
         <div class="modal-box">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
-                <span style="color: var(--text-dim); font-weight: 800; cursor: pointer; font-size: 12px; letter-spacing: 1px;" onclick="closeModal()">CANCEL</span>
-            </div>
+            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
             
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
-                <div class="btn-group">
-                    <div id="optHor" class="opt-btn active" onclick="setMergeAxis('horizontal')">Horizontal</div>
-                    <div id="optVer" class="opt-btn" onclick="setMergeAxis('vertical')">Vertical</div>
+                <div style="display: flex; gap: 10px;">
+                    <button class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
 
             <div id="compressConfig" class="config-section" style="display:none;">
                 <span class="section-label">Optimization Intensity</span>
-                <div style="display: flex; justify-content: space-between; font-weight: 800; font-size: 14px; margin-bottom: 10px;">
-                    <span style="color: var(--text-dim);">Target Density</span><span id="qVal" style="color: var(--brand-accent);">Recommended</span>
+                <div style="display: flex; justify-content: space-between; font-weight: 800;">
+                    <span style="color: var(--text-dim);">Density</span><span id="qVal" style="color: var(--brand-accent);">60%</span>
                 </div>
-                <input type="range" min="1" max="3" value="2" class="q-slider" id="compSlider" oninput="updateCompLabel(this.value)">
-                <div style="display: flex; justify-content: space-between; font-size: 10px; font-weight: 900; color: #475569; letter-spacing: 1.5px; margin-top: 10px;">
-                    <span>NEURAL</span><span>BALANCED</span><span>LIGHT</span>
-                </div>
+                <input type="range" min="1" max="3" value="2" style="width: 100%; accent-color: var(--brand-accent); margin: 20px 0;" oninput="updateCompLabel(this.value)">
             </div>
 
-            <div class="review-window" id="reviewContainer">
-                <p style="color: #475569; font-weight: 700; font-size: 13px; letter-spacing: 1px;">INITIALIZING SECURE PREVIEW</p>
+            <div class="config-section">
+                <div class="review-window" id="reviewContainer">
+                    <p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p>
+                </div>
             </div>
 
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
+            <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
     </div>
 
@@ -227,119 +133,56 @@
     <div id="status">NADIM ENGINE ACTIVE</div>
 
     <script>
-        const picker = document.getElementById('filePicker'), 
-              status = document.getElementById('status'), 
-              overlay = document.getElementById('overlay'),
-              reviewContainer = document.getElementById('reviewContainer'),
-              canvas = document.getElementById('mergeCanvas'),
-              ctx = canvas.getContext('2d');
+        const picker = document.getElementById('filePicker'), status = document.getElementById('status'), overlay = document.getElementById('overlay'), reviewContainer = document.getElementById('reviewContainer'), canvas = document.getElementById('mergeCanvas'), ctx = canvas.getContext('2d');
+        let currentTool = "", selectedFiles = [], mergeAxis = "horizontal", processedBlob = null;
 
-        let currentTool = "", currentOutName = "", processedBlob = null, selectedFiles = [], mergeAxis = "horizontal";
-
-        function runTool(tool, out) { 
-            currentTool = tool; 
-            currentOutName = out; 
-            
-            // Critical Fix: Reset picker for local storage selection
-            picker.value = ""; 
-            
-            // Tool-specific file filters
-            if (tool === 'officepdf') picker.accept = ".doc,.docx";
-            else if (tool === 'imagepdf') picker.accept = "image/*";
-            else if (tool === 'pdfword') picker.accept = ".pdf";
-            else if (tool === 'compress') picker.accept = ".pdf";
-            else picker.accept = ".pdf,.docx,.doc";
-            
-            picker.click(); 
-        }
-
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; }
-
-        function setMergeAxis(axis) {
-            mergeAxis = axis;
-            document.getElementById('optHor').className = axis === 'horizontal' ? 'opt-btn active' : 'opt-btn';
-            document.getElementById('optVer').className = axis === 'vertical' ? 'opt-btn active' : 'opt-btn';
-            generateMergePreview();
-        }
-
-        function updateCompLabel(v) {
-            const labels = ["Maximum Reduction", "Recommended", "Light Reduction"];
-            const qVal = document.getElementById('qVal');
-            if (qVal) qVal.innerText = labels[v-1];
-        }
+        function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
+        function closeModal() { overlay.style.display = 'none'; }
+        function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
+        async function setMergeAxis(a) { mergeAxis = a; if (currentTool === 'imagepdf') await generateMergePreview(); }
 
         picker.onchange = async function() {
-            selectedFiles = Array.from(this.files);
-            if (selectedFiles.length === 0) return;
-            overlay.style.display = 'flex';
-            
-            // Toggle Config Sections
-            document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
-            document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
-            
-            if (currentTool === 'imagepdf') generateMergePreview();
-            else reviewContainer.innerHTML = '<p style="color: var(--brand-accent); font-weight: 800; font-size: 14px;">SECURE HANDSHAKE ESTABLISHED</p>';
+            selectedFiles = Array.from(this.files).slice(0, 100);
+            if (selectedFiles.length > 0) {
+                overlay.style.display = 'flex';
+                document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
+                document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
+                if (currentTool === 'imagepdf') await generateMergePreview();
+            }
         };
 
         async function generateMergePreview() {
-            const images = await Promise.all(selectedFiles.map(file => new Promise(resolve => {
-                const img = new Image(); img.onload = () => resolve(img); img.src = URL.createObjectURL(file);
-            })));
+            const imgs = await Promise.all(selectedFiles.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
             if (mergeAxis === 'horizontal') {
-                canvas.width = images.reduce((s, i) => s + i.width, 0);
-                canvas.height = Math.max(...images.map(i => i.height));
-                let offset = 0; images.forEach(img => { ctx.drawImage(img, offset, 0); offset += img.width; });
+                canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
+                let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
             } else {
-                canvas.width = Math.max(...images.map(i => i.width));
-                canvas.height = images.reduce((s, i) => s + i.height, 0);
-                let offset = 0; images.forEach(img => { ctx.drawImage(img, 0, offset); offset += img.height; });
+                canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
+                let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
             }
-            canvas.toBlob((blob) => { processedBlob = blob; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(blob)}">`; }, 'image/jpeg', 0.9);
+            canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}">`; }, 'image/jpeg', 0.9);
         }
 
         document.getElementById('finalDownload').onclick = async function() {
-            if (currentTool === 'imagepdf' && processedBlob) triggerDownload(processedBlob);
-            else executeCloudProcess();
-        };
-
-        async function executeCloudProcess() {
-            status.style.display = 'block';
-            status.innerText = "INITIATING SECURE HANDSHAKE...";
+            status.style.display = 'block'; status.innerText = "INITIATING SECURE HANDSHAKE...";
             try {
-                // Pointing to Vercel API Path
-                const response = await fetch('/api/process', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tool: currentTool })
-                });
-                
-                const data = await response.json();
-                
+                const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
+                const data = await res.json();
                 if (data.status === "SUCCESS") {
-                    status.style.background = "#10b981";
-                    status.innerText = "ELITE HANDSHAKE SUCCESSFUL";
-                    
-                    setTimeout(() => {
-                        alert("iLovePDF Handshake Success! Task ID: " + data.task);
-                        status.style.display = 'none';
-                        status.style.background = "var(--brand-accent)";
-                        closeModal();
-                    }, 1500);
-                } else {
-                    throw new Error("Invalid Handshake");
+                    const { server, task, token } = data;
+                    status.innerText = "UPLOADING ASSETS...";
+                    const fd = new FormData(); fd.append('task', task);
+                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
+                    else for (let f of selectedFiles) fd.append('file', f);
+                    await fetch(`https://${server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+                    status.innerText = "ENGINEERING DOCUMENT...";
+                    await fetch(`https://${server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool, task: task }) });
+                    status.innerText = "SUCCESS: DOWNLOADING...";
+                    window.location.href = `https://${server}/v1/download/${task}`;
+                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                 }
-
-            } catch (err) {
-                status.innerText = "ENGINE ERROR. CHECK API KEYS.";
-                setTimeout(() => status.style.display = 'none', 3000);
-            }
-        }
-
-        function triggerDownload(blob) {
-            const url = window.URL.createObjectURL(blob), a = document.createElement("a");
-            a.href = url; a.download = "NADIM_" + currentOutName; a.click();
-            status.style.display = 'none'; closeModal();
-        }
+            } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+        };
     </script>
 </body>
 </html>
