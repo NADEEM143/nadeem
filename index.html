@@ -162,7 +162,7 @@
         }
 
         picker.onchange = async function() {
-            selectedFiles = Array.from(this.files).slice(0, 100);
+            selectedFiles = Array.from(this.files); 
             if (selectedFiles.length > 0) {
                 overlay.style.display = 'flex';
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
@@ -173,7 +173,7 @@
         };
 
         async function generateMergePreview() {
-            const imgs = await Promise.all(selectedFiles.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
+            const imgs = await Promise.all(selectedFiles.slice(0,100).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
             if (mergeAxis === 'horizontal') {
                 canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
                 let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
@@ -194,14 +194,18 @@
                     const { server, task, token, tool: activeTool } = data;
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
-                    const fd = new FormData(); fd.append('task', task);
+                    
+                    const fd = new FormData(); 
+                    fd.append('task', task);
+                    
+                    // FIXED FOR DESKTOP & MOBILE
                     if (currentTool === 'imagepdf' && processedBlob) {
                         fd.append('file', processedBlob, 'merged.jpg');
                     } else {
-                        // FIXED: PICK FIRST FILE FROM ARRAY
                         fd.append('file', selectedFiles[0]); 
                     }
 
+                    // CORS SECURE UPLOAD
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
@@ -212,8 +216,11 @@
                                 status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
                             }
                         };
-                        xhr.onload = () => resolve(xhr.response);
-                        xhr.onerror = () => reject();
+                        xhr.onload = () => {
+                            if(xhr.status >= 200 && xhr.status < 300) resolve();
+                            else reject(new Error('Upload failed'));
+                        };
+                        xhr.onerror = () => reject(new Error('Upload error'));
                         xhr.send(fd);
                     });
                     
@@ -221,7 +228,7 @@
                     const compressionMap = ["extreme", "recommended", "low"];
                     const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
-                    await fetch(`https://${server}/v1/process`, { 
+                    const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
                         body: JSON.stringify({ 
@@ -232,9 +239,13 @@
                         }) 
                     });
 
-                    status.innerText = "SUCCESS: DOWNLOADING...";
-                    window.location.href = `https://${server}/v1/download/${task}`;
-                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
+                    if(pRes.ok) {
+                        status.innerText = "SUCCESS: DOWNLOADING...";
+                        window.location.href = `https://${server}/v1/download/${task}`;
+                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
+                    } else {
+                        throw new Error("Process Step Failed");
+                    }
                 }
             } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
