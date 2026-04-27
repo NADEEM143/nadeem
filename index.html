@@ -193,7 +193,6 @@
                 
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
-                    
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
                     
@@ -202,7 +201,7 @@
                     if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
                     else fd.append('file', selectedFileList[0]); 
 
-                    // --- PURE XHR UPLOAD ---
+                    // --- THE FIX: No Authorization Header for Upload (Stops 401 Error) ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
@@ -213,11 +212,8 @@
                                 status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
                             }
                         };
-                        xhr.onload = () => {
-                            if (xhr.status >= 200 && xhr.status < 300) resolve();
-                            else reject(new Error('Upload rejected'));
-                        };
-                        xhr.onerror = () => reject(new Error('Network failure'));
+                        xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(); };
+                        xhr.onerror = () => reject();
                         xhr.send(fd);
                     });
                     
@@ -229,8 +225,7 @@
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
                         body: JSON.stringify({ 
-                            task: task, 
-                            tool: activeTool,
+                            task: task, tool: activeTool,
                             pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
                             compression_level: currentTool === 'compress' ? compressionLevel : undefined 
                         }) 
@@ -240,9 +235,9 @@
                         status.innerText = "SUCCESS: DOWNLOADING...";
                         window.location.href = `https://${server}/v1/download/${task}`;
                         setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
-                    } else throw new Error("API process failed");
+                    } else throw new Error();
                 }
-            } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+            } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
     </script>
 </body>
