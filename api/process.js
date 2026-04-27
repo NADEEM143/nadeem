@@ -12,12 +12,15 @@ module.exports = async (req, res) => {
         const body = req.body;
         let tool = body.tool || 'officepdf';
         
-        // --- STICK TOOL MAPPING ---
-        // Maps your frontend tool names to the official iLovePDF API names
+               // --- FINAL STICK TOOL MAPPING ---
         if (tool === 'pdf') tool = 'officepdf'; 
-        if (tool === 'pdfword') tool = 'pdfword';
+        
+        // This is the critical change: trying the secondary API name
+        if (tool === 'pdfword') tool = 'pdfdocx'; 
+        
         if (tool === 'compress') tool = 'compress';
         if (tool === 'imagepdf') tool = 'imagepdf';
+
 
         // STEP 1: AUTHENTICATION
         // We send both keys to get a "High Privilege" token for tools like pdfword
