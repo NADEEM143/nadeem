@@ -12,15 +12,14 @@ module.exports = async (req, res) => {
         const body = req.body;
         let tool = body.tool || 'officepdf';
         
-               // --- FINAL STICK TOOL MAPPING ---
+        // --- FINAL UNIVERSAL ENGINE MAPPING ---
         if (tool === 'pdf') tool = 'officepdf'; 
         
-        // This is the critical change: trying the secondary API name
-        if (tool === 'pdfword') tool = 'pdfdocx'; 
+        // This is the NEW engine name for PDF to Word (OCR)
+        if (tool === 'pdfword') tool = 'pdfocr'; 
         
         if (tool === 'compress') tool = 'compress';
         if (tool === 'imagepdf') tool = 'imagepdf';
-
 
         // STEP 1: AUTHENTICATION
         // We send both keys to get a "High Privilege" token for tools like pdfword
