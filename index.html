@@ -234,13 +234,13 @@
                     const compressionMap = ["extreme", "recommended", "low"];
                     const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
-                    await fetch(`https://${server}/v1/process`, { 
-                        method: 'POST', 
-                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            task: task, 
-                            tool: currentTool,
-                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                            body: JSON.stringify({ 
+            task: task, 
+            tool: currentTool,
+            // ADD THIS LINE BELOW
+            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
+            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+        })
                         }) 
                     });
 
