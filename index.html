@@ -196,8 +196,12 @@
                     pContainer.style.display = 'block';
                     
                     const fd = new FormData(); fd.append('task', task);
-                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
-                    else fd.append('file', selectedFiles[0]);
+                    if (currentTool === 'imagepdf' && processedBlob) {
+                        fd.append('file', processedBlob, 'merged.jpg');
+                    } else {
+                        // FIXED: Correctly targets the file object
+                        fd.append('file', selectedFiles[0]); 
+                    }
 
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
