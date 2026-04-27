@@ -144,7 +144,7 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
+        function closeModal() { overlay.style.display = 'none'; picker.value = ""; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
         function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
@@ -161,20 +161,19 @@
             if (currentTool === 'imagepdf') await generateMergePreview(); 
         }
 
-        picker
-        .onchange = function() {
-            selectedFileList = Array.from(this.files);
+        picker.onchange = async function() {
+            selectedFileList = Array.from(this.files).slice(0, 100);
             if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
                 document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') generateMergePreview();
+                if (currentTool === 'imagepdf') await generateMergePreview();
                 else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
             }
         };
 
         async function generateMergePreview() {
-            const imgs = await Promise.all(selectedFileList.slice(0, 100).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
+            const imgs = await Promise.all(selectedFileList.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
             if (mergeAxis === 'horizontal') {
                 canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
                 let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
@@ -182,67 +181,51 @@
                 canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
                 let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
             }
-            canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}">`; }, 'image/jpeg', 0.9);
+            canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}">`; }, 'image/jpeg', 0.95);
         }
 
         document.getElementById('finalDownload').onclick = async function() {
-            if (selectedFileList.length === 0 && !processedBlob) return;
+            if (currentTool === 'imagepdf' && processedBlob) {
+                // INSTANT LOCAL DOWNLOAD (NO API REQUIRED)
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(processedBlob);
+                link.download = "NADIM_MERGED_ASSET.jpg";
+                link.click();
+                closeModal();
+                return;
+            }
+
+            // API HANDSHAKE FOR OTHER SERVICES
             status.style.display = 'block'; status.innerText = "INITIATING SECURE HANDSHAKE...";
             try {
                 const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
                 const data = await res.json();
-                
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
-                    
-                    const fd = new FormData(); 
-                    fd.append('task', task);
-                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
-                    else fd.append('file', selectedFileList[0]); // Targets physical object
+                    const fd = new FormData(); fd.append('task', task);
+                    fd.append('file', selectedFileList[0]); 
 
-                    // --- THE PRECISE FIX FOR 401/PREFLIGHT ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
-                        // CRITICAL: We do NOT set headers here. This prevents the browser preflight block.
-                        xhr.upload.onprogress = (e) => {
-                            if (e.lengthComputable) {
-                                const percent = (e.loaded / e.total) * 100;
-                                pBar.style.width = percent + "%";
-                                status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
-                            }
-                        };
-                        xhr.onload = () => {
-                            if (xhr.status >= 200 && xhr.status < 300) resolve();
-                            else reject(new Error('Upload failed'));
-                        };
+                        xhr.upload.onprogress = (e) => { if (e.lengthComputable) pBar.style.width = (e.loaded / e.total * 100) + "%"; };
+                        xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(); };
                         xhr.onerror = () => reject();
                         xhr.send(fd);
                     });
-                    
-                    status.innerText = "ENGINEERING DOCUMENT...";
-                    const compressionMap = ["extreme", "recommended", "low"];
-                    const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
+                    status.innerText = "ENGINEERING...";
+                    const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
                     const pRes = await fetch(`https://${server}/v1/process`, { 
-                        method: 'POST', 
-                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            task: task, tool: activeTool,
-                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
-                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                        }) 
+                        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ task, tool: activeTool, pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, compression_level: currentTool === 'compress' ? compressionLevel : undefined }) 
                     });
-
-                    if (pRes.ok) {
-                        status.innerText = "SUCCESS: DOWNLOADING...";
-                        window.location.href = `https://${server}/v1/download/${task}`;
-                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
-                    } else throw new Error();
+                    if (pRes.ok) { window.location.href = `https://${server}/v1/download/${task}`; closeModal(); }
+                    else throw new Error();
                 }
-            } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+            } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
     </script>
 </body>
