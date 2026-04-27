@@ -1,58 +1,43 @@
 const axios = require('axios');
 
 module.exports = async (req, res) => {
-    // Only allow POST requests from your frontend
     if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-    // Pulling keys from Vercel Environment Variables
     const PUBLIC_KEY = process.env.ILOVEPDF_PUBLIC_KEY;
     const SECRET_KEY = process.env.ILOVEPDF_SECRET_KEY;
     
     try {
-        const body = req.body;
-        let tool = body.tool || 'officepdf';
+        const { tool = 'officepdf' } = req.body;
         
-        // --- FINAL UNIVERSAL ENGINE MAPPING ---
-        if (tool === 'pdf') tool = 'officepdf'; 
-        
-        // This is the NEW engine name for PDF to Word (OCR)
-        if (tool === 'pdfword') tool = 'pdfocr'; 
-        
-        if (tool === 'compress') tool = 'compress';
-        if (tool === 'imagepdf') tool = 'imagepdf';
-
         // STEP 1: AUTHENTICATION
-        // We send both keys to get a "High Privilege" token for tools like pdfword
         const authResponse = await axios.post('https://api.ilovepdf.com/v1/auth', {
             public_key: PUBLIC_KEY,
             secret_key: SECRET_KEY
-        });
+        }, { timeout: 10000 });
 
         const token = authResponse.data.token;
 
-        // STEP 2: START TASK HANDSHAKE
-        // Uses backticks (`) to properly inject the tool name into the URL
-        const startResponse = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
+        // STEP 2: TOOL MAPPING
+        let engineTool = tool;
+        if (tool === 'pdfword') engineTool = 'pdfocr';
+        if (tool === 'pdf') engineTool = 'officepdf';
+
+        // STEP 3: START TASK
+        const startResponse = await axios.get(`https://api.ilovepdf.com/v1/start/${engineTool}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            timeout: 10000
         });
 
-               // Send back the session data AND the tool name to the frontend
         res.status(200).json({
             status: "SUCCESS",
             server: startResponse.data.server,
             task: startResponse.data.task,
             token: token,
-            tool: tool // ADD THIS LINE: It tells the frontend the real tool name (like pdfocr)
+            tool: engineTool
         });
 
     } catch (err) {
-        // Detailed error logging for your Vercel Dashboard
-        console.error("API_HANDSHAKE_ERROR:", err.response?.data || err.message);
-        
-        res.status(err.response?.status || 500).json({
-            status: "ERROR",
-            error: "HANDSHAKE_FAILED",
-            details: err.response?.data || err.message
-        });
+        console.error("LOG_ERROR:", err.response?.data || err.message);
+        res.status(500).json({ error: "HANDSHAKE_FAILED", details: err.message });
     }
 };
