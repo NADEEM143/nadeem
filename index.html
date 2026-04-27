@@ -150,17 +150,19 @@
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
             const bh = document.getElementById('btnHor'), bv = document.getElementById('btnVer');
+            const textDim = getComputedStyle(document.documentElement).getPropertyValue('--text-dim');
             if(axis === 'horizontal') {
                 bh.style.background = "rgba(99, 102, 241, 0.1)"; bh.style.borderColor = "var(--brand-accent)"; bh.style.color = "#fff";
-                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = "var(--text-dim)";
+                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = textDim;
             } else {
                 bv.style.background = "rgba(99, 102, 241, 0.1)"; bv.style.borderColor = "var(--brand-accent)"; bv.style.color = "#fff";
-                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = "var(--text-dim)";
+                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = textDim;
             }
             if (currentTool === 'imagepdf') await generateMergePreview(); 
         }
 
-        picker.onchange = function() {
+        picker
+        .onchange = function() {
             selectedFileList = Array.from(this.files);
             if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
@@ -189,32 +191,51 @@
             try {
                 const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
                 const data = await res.json();
+                
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
-                    // --- SAFETY WAIT TO STOP 401 ---
-                    status.innerText = "PREPARING ENGINE...";
-                    await new Promise(r => setTimeout(r, 1000));
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
-                    const fd = new FormData(); fd.append('task', task);
-                    if (currentTool === 'imagepdf' && processedBlob) { fd.append('file', processedBlob, 'merged.jpg'); } 
-                    else { fd.append('file', selectedFileList[0]); }
-                    // --- THE FIX: Clean XHR Upload to bypass preflight/headers ---
+                    
+                    const fd = new FormData(); 
+                    fd.append('task', task);
+                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
+                    else fd.append('file', selectedFileList[0]); // Targets physical object
+
+                    // --- THE PRECISE FIX FOR 401/PREFLIGHT ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
-                        xhr.upload.onprogress = (e) => { if (e.lengthComputable) pBar.style.width = (e.loaded / e.total * 100) + "%"; };
-                        xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(); };
+                        // CRITICAL: We do NOT set headers here. This prevents the browser preflight block.
+                        xhr.upload.onprogress = (e) => {
+                            if (e.lengthComputable) {
+                                const percent = (e.loaded / e.total) * 100;
+                                pBar.style.width = percent + "%";
+                                status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
+                            }
+                        };
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) resolve();
+                            else reject(new Error('Upload failed'));
+                        };
                         xhr.onerror = () => reject();
                         xhr.send(fd);
                     });
+                    
                     status.innerText = "ENGINEERING DOCUMENT...";
-                    const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
+                    const compressionMap = ["extreme", "recommended", "low"];
+                    const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
+
                     const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ task, tool: activeTool, pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, compression_level: currentTool === 'compress' ? compressionLevel : undefined }) 
+                        body: JSON.stringify({ 
+                            task: task, tool: activeTool,
+                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
+                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                        }) 
                     });
+
                     if (pRes.ok) {
                         status.innerText = "SUCCESS: DOWNLOADING...";
                         window.location.href = `https://${server}/v1/download/${task}`;
