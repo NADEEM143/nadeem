@@ -144,30 +144,29 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
+        function closeModal() { overlay.style.display = 'none'; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
         function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
             const bh = document.getElementById('btnHor'), bv = document.getElementById('btnVer');
-            const textDim = getComputedStyle(document.documentElement).getPropertyValue('--text-dim');
             if(axis === 'horizontal') {
                 bh.style.background = "rgba(99, 102, 241, 0.1)"; bh.style.borderColor = "var(--brand-accent)"; bh.style.color = "#fff";
-                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = textDim;
+                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = "var(--text-dim)";
             } else {
                 bv.style.background = "rgba(99, 102, 241, 0.1)"; bv.style.borderColor = "var(--brand-accent)"; bv.style.color = "#fff";
-                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = textDim;
+                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = "var(--text-dim)";
             }
             if (currentTool === 'imagepdf') await generateMergePreview(); 
         }
 
-        picker.onchange = async function() {
+        picker.onchange = function() {
             selectedFileList = Array.from(this.files);
             if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
                 document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') await generateMergePreview();
+                if (currentTool === 'imagepdf') generateMergePreview();
                 else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
             }
         };
@@ -192,11 +191,15 @@
                 const data = await res.json();
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
+                    // --- SAFETY WAIT TO STOP 401 ---
+                    status.innerText = "PREPARING ENGINE...";
+                    await new Promise(r => setTimeout(r, 1000));
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
                     const fd = new FormData(); fd.append('task', task);
                     if (currentTool === 'imagepdf' && processedBlob) { fd.append('file', processedBlob, 'merged.jpg'); } 
                     else { fd.append('file', selectedFileList[0]); }
+                    // --- THE FIX: Clean XHR Upload to bypass preflight/headers ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
