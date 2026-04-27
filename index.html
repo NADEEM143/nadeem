@@ -150,7 +150,7 @@
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
             const bh = document.getElementById('btnHor'), bv = document.getElementById('btnVer');
-            const textDim = getComputedStyle(document.documentElement).getPropertyValue('--text-dim');
+            const textDim = getComputedStyle(document.documentElement).getPropertyValue(--text-dim');
             if(axis === 'horizontal') {
                 bh.style.background = "rgba(99, 102, 241, 0.1)"; bh.style.borderColor = "var(--brand-accent)"; bh.style.color = "#fff";
                 bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = textDim;
@@ -168,7 +168,7 @@
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
                 document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
                 if (currentTool === 'imagepdf') await generateMergePreview();
-                else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList.name}</p></div>`;
             }
         };
 
@@ -199,14 +199,18 @@
                     
                     const fd = new FormData(); 
                     fd.append('task', task);
-                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
-                    else fd.append('file', selectedFileList[0]); 
+                    
+                    // TARGET THE PHYSICAL FILE OBJECT (CRITICAL FOR MOBILE/DESKTOP SYNC)
+                    if (currentTool === 'imagepdf' && processedBlob) {
+                        fd.append('file', processedBlob, 'merged.jpg');
+                    } else {
+                        fd.append('file', selectedFileList); 
+                    }
 
-                    // --- PURE XHR UPLOAD (STOP 401 ERROR) ---
+                    // --- PURE XHR UPLOAD TO BYPASS CORS 401 ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
-                        // DO NOT set any custom headers here!
                         xhr.upload.onprogress = (e) => {
                             if (e.lengthComputable) {
                                 const percent = (e.loaded / e.total) * 100;
@@ -216,9 +220,9 @@
                         };
                         xhr.onload = () => {
                             if (xhr.status >= 200 && xhr.status < 300) resolve();
-                            else reject(new Error('Upload rejected: ' + xhr.status));
+                            else reject(new Error('Upload failed with status: ' + xhr.status));
                         };
-                        xhr.onerror = () => reject(new Error('Network failure'));
+                        xhr.onerror = () => reject(new Error('Network error during upload'));
                         xhr.send(fd);
                     });
                     
@@ -230,7 +234,8 @@
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
                         body: JSON.stringify({ 
-                            task: task, tool: activeTool,
+                            task: task, 
+                            tool: activeTool,
                             pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
                             compression_level: currentTool === 'compress' ? compressionLevel : undefined 
                         }) 
@@ -240,9 +245,15 @@
                         status.innerText = "SUCCESS: DOWNLOADING...";
                         window.location.href = `https://${server}/v1/download/${task}`;
                         setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
-                    } else throw new Error("API Finalization Failed");
+                    } else {
+                        throw new Error("Final processing execution failed");
+                    }
                 }
-            } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+            } catch (err) { 
+                console.error(err); 
+                status.innerText = "ENGINE ERROR."; 
+                setTimeout(() => status.style.display = 'none', 3000); 
+            }
         };
     </script>
 </body>
