@@ -36,12 +36,13 @@ module.exports = async (req, res) => {
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        // Send back the session data to your frontend
+               // Send back the session data AND the tool name to the frontend
         res.status(200).json({
             status: "SUCCESS",
             server: startResponse.data.server,
             task: startResponse.data.task,
-            token: token 
+            token: token,
+            tool: tool // ADD THIS LINE: It tells the frontend the real tool name (like pdfocr)
         });
 
     } catch (err) {
