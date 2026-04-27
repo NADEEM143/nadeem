@@ -54,7 +54,7 @@
 
         #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--brand-accent); color: #fff; padding: 18px 40px; border-radius: 100px; display: none; font-weight: 800; z-index: 300; }
 
-        #progressContainer { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; margin-top: 15px; overflow: hidden; display: none; }
+        #progressContainer { width: 100%; height: 6px; background: rgba(255, 255, 255, 0.05); border-radius: 10px; margin-top: 15px; overflow: hidden; display: none; }
         #progressBar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--brand-accent), #818cf8); transition: width 0.3s ease; }
     </style>
 </head>
@@ -194,19 +194,21 @@
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
                     
-                    // --- THE SECURE WAIT FIX ---
+                    // --- SAFETY HANDSHAKE DELAY ---
                     status.innerText = "PREPARING ENGINE...";
-                    await new Promise(r => setTimeout(r, 1500)); 
+                    await new Promise(r => setTimeout(r, 2000));
 
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
                     
                     const fd = new FormData(); 
                     fd.append('task', task);
+                    
                     if (currentTool === 'imagepdf' && processedBlob) {
                         fd.append('file', processedBlob, 'merged.jpg');
                     } else {
-                        fd.append('file', selectedFileList[0]); // Target single physical object
+                        // FIXED: Direct reference to the first physical file
+                        fd.append('file', selectedFileList[0]); 
                     }
 
                     await new Promise((resolve, reject) => {
@@ -219,7 +221,10 @@
                                 status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
                             }
                         };
-                        xhr.onload = () => resolve();
+                        xhr.onload = () => {
+                            if (xhr.status >= 200 && xhr.status < 300) resolve();
+                            else reject(new Error('Upload failed'));
+                        };
                         xhr.onerror = () => reject(new Error('Upload error'));
                         xhr.send(fd);
                     });
@@ -228,23 +233,23 @@
                     const compressionMap = ["extreme", "recommended", "low"];
                     const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
-                    const pRes = await fetch(`https://${server}/v1/process`, { 
+                    const payload = { 
+                        task: task, 
+                        tool: activeTool,
+                        compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                    };
+
+                    if (activeTool === 'pdfocr') payload.pdfocr_convert_to = 'docx';
+
+                    await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            task: task, tool: activeTool,
-                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
-                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                        }) 
+                        body: JSON.stringify(payload) 
                     });
 
-                    if (pRes.ok) {
-                        status.innerText = "SUCCESS: DOWNLOADING...";
-                        window.location.href = `https://${server}/v1/download/${task}`;
-                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
-                    } else {
-                        throw new Error("Final processing failed");
-                    }
+                    status.innerText = "SUCCESS: DOWNLOADING...";
+                    window.location.href = `https://${server}/v1/download/${task}`;
+                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                 }
             } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
