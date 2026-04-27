@@ -194,16 +194,19 @@
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
                     
+                    // --- THE SECURE WAIT FIX ---
+                    status.innerText = "PREPARING ENGINE...";
+                    await new Promise(r => setTimeout(r, 1500)); 
+
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
                     
                     const fd = new FormData(); 
                     fd.append('task', task);
-                    
                     if (currentTool === 'imagepdf' && processedBlob) {
                         fd.append('file', processedBlob, 'merged.jpg');
                     } else {
-                        fd.append('file', selectedFileList[0]); 
+                        fd.append('file', selectedFileList[0]); // Target single physical object
                     }
 
                     await new Promise((resolve, reject) => {
@@ -225,36 +228,25 @@
                     const compressionMap = ["extreme", "recommended", "low"];
                     const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
-                    // PRECISE SYNC: Ensure PDFOCR gets its specific output requirement
-                    const payload = { 
-                        task: task, 
-                        tool: activeTool,
-                        compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                    };
-
-                    if (activeTool === 'pdfocr') {
-                        payload.pdfocr_convert_to = 'docx';
-                    }
-
-                    const processRes = await fetch(`https://${server}/v1/process`, { 
+                    const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify(payload) 
+                        body: JSON.stringify({ 
+                            task: task, tool: activeTool,
+                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
+                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                        }) 
                     });
 
-                    if (processRes.ok) {
+                    if (pRes.ok) {
                         status.innerText = "SUCCESS: DOWNLOADING...";
                         window.location.href = `https://${server}/v1/download/${task}`;
                         setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                     } else {
-                        throw new Error("Process execution failed");
+                        throw new Error("Final processing failed");
                     }
                 }
-            } catch (err) { 
-                console.error(err); 
-                status.innerText = "ENGINE ERROR."; 
-                setTimeout(() => status.style.display = 'none', 3000); 
-            }
+            } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
     </script>
 </body>
