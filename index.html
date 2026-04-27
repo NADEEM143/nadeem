@@ -144,19 +144,18 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
+        function closeModal() { overlay.style.display = 'none'; pBar.style.width = "0%"; }
         function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
             const bh = document.getElementById('btnHor'), bv = document.getElementById('btnVer');
-            const textDim = getComputedStyle(document.documentElement).getPropertyValue('--text-dim');
             if(axis === 'horizontal') {
                 bh.style.background = "rgba(99, 102, 241, 0.1)"; bh.style.borderColor = "var(--brand-accent)"; bh.style.color = "#fff";
-                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = textDim;
+                bv.style.background = "rgba(255,255,255,0.05)"; bv.style.borderColor = "transparent"; bv.style.color = "var(--text-dim)";
             } else {
                 bv.style.background = "rgba(99, 102, 241, 0.1)"; bv.style.borderColor = "var(--brand-accent)"; bv.style.color = "#fff";
-                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = textDim;
+                bh.style.background = "rgba(255,255,255,0.05)"; bh.style.borderColor = "transparent"; bh.style.color = "var(--text-dim)";
             }
             if (currentTool === 'imagepdf') await generateMergePreview(); 
         }
@@ -186,26 +185,23 @@
 
         document.getElementById('finalDownload').onclick = async function() {
             if (currentTool === 'imagepdf' && processedBlob) {
-                // INSTANT LOCAL DOWNLOAD (NO API REQUIRED)
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_MERGED_ASSET.jpg";
+                link.download = "NADIM_MERGED_FILE.jpg";
                 link.click();
                 closeModal();
                 return;
             }
 
-            // API HANDSHAKE FOR OTHER SERVICES
-            status.style.display = 'block'; status.innerText = "INITIATING SECURE HANDSHAKE...";
+            status.style.display = 'block'; status.innerText = "HANDSHAKE...";
             try {
                 const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
                 const data = await res.json();
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
-                    status.innerText = "UPLOADING ASSETS...";
-                    pContainer.style.display = 'block';
+                    status.innerText = "UPLOADING..."; pContainer.style.display = 'block';
                     const fd = new FormData(); fd.append('task', task);
-                    fd.append('file', selectedFileList[0]); 
+                    fd.append('file', selectedFileList[0]); // FIXED: Targets physical file object
 
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
@@ -215,7 +211,7 @@
                         xhr.onerror = () => reject();
                         xhr.send(fd);
                     });
-
+                    
                     status.innerText = "ENGINEERING...";
                     const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
                     const pRes = await fetch(`https://${server}/v1/process`, { 
