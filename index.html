@@ -190,54 +190,35 @@
             try {
                 const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
                 const data = await res.json();
-                
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
-                    
-                    const fd = new FormData(); 
-                    fd.append('task', task);
-                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
-                    else fd.append('file', selectedFileList[0]); 
-
-                    // --- THE FIX: No Authorization Header for Upload (Stops 401 Error) ---
+                    const fd = new FormData(); fd.append('task', task);
+                    if (currentTool === 'imagepdf' && processedBlob) { fd.append('file', processedBlob, 'merged.jpg'); } 
+                    else { fd.append('file', selectedFileList[0]); }
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
-                        xhr.upload.onprogress = (e) => {
-                            if (e.lengthComputable) {
-                                const percent = (e.loaded / e.total) * 100;
-                                pBar.style.width = percent + "%";
-                                status.innerText = `UPLOADING ASSETS (${Math.round(percent)}%)`;
-                            }
-                        };
+                        xhr.upload.onprogress = (e) => { if (e.lengthComputable) pBar.style.width = (e.loaded / e.total * 100) + "%"; };
                         xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(); };
                         xhr.onerror = () => reject();
                         xhr.send(fd);
                     });
-                    
                     status.innerText = "ENGINEERING DOCUMENT...";
-                    const compressionMap = ["extreme", "recommended", "low"];
-                    const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
-
+                    const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
                     const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            task: task, tool: activeTool,
-                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
-                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                        }) 
+                        body: JSON.stringify({ task, tool: activeTool, pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, compression_level: currentTool === 'compress' ? compressionLevel : undefined }) 
                     });
-
                     if (pRes.ok) {
                         status.innerText = "SUCCESS: DOWNLOADING...";
                         window.location.href = `https://${server}/v1/download/${task}`;
                         setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                     } else throw new Error();
                 }
-            } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+            } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
     </script>
 </body>
