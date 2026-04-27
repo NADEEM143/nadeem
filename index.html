@@ -194,26 +194,19 @@
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
                     
-                    // --- SAFETY HANDSHAKE DELAY ---
-                    status.innerText = "PREPARING ENGINE...";
-                    await new Promise(r => setTimeout(r, 2000));
-
                     status.innerText = "UPLOADING ASSETS...";
                     pContainer.style.display = 'block';
                     
                     const fd = new FormData(); 
                     fd.append('task', task);
-                    
-                    if (currentTool === 'imagepdf' && processedBlob) {
-                        fd.append('file', processedBlob, 'merged.jpg');
-                    } else {
-                        // FIXED: Direct reference to the first physical file
-                        fd.append('file', selectedFileList[0]); 
-                    }
+                    if (currentTool === 'imagepdf' && processedBlob) fd.append('file', processedBlob, 'merged.jpg');
+                    else fd.append('file', selectedFileList[0]); 
 
+                    // --- PURE XHR UPLOAD (STOP 401 ERROR) ---
                     await new Promise((resolve, reject) => {
                         const xhr = new XMLHttpRequest();
                         xhr.open('POST', `https://${server}/v1/upload`);
+                        // DO NOT set any custom headers here!
                         xhr.upload.onprogress = (e) => {
                             if (e.lengthComputable) {
                                 const percent = (e.loaded / e.total) * 100;
@@ -223,9 +216,9 @@
                         };
                         xhr.onload = () => {
                             if (xhr.status >= 200 && xhr.status < 300) resolve();
-                            else reject(new Error('Upload failed'));
+                            else reject(new Error('Upload rejected: ' + xhr.status));
                         };
-                        xhr.onerror = () => reject(new Error('Upload error'));
+                        xhr.onerror = () => reject(new Error('Network failure'));
                         xhr.send(fd);
                     });
                     
@@ -233,23 +226,21 @@
                     const compressionMap = ["extreme", "recommended", "low"];
                     const compressionLevel = compressionMap[document.getElementById('compSlider').value - 1];
 
-                    const payload = { 
-                        task: task, 
-                        tool: activeTool,
-                        compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                    };
-
-                    if (activeTool === 'pdfocr') payload.pdfocr_convert_to = 'docx';
-
-                    await fetch(`https://${server}/v1/process`, { 
+                    const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', 
                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify(payload) 
+                        body: JSON.stringify({ 
+                            task: task, tool: activeTool,
+                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined,
+                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                        }) 
                     });
 
-                    status.innerText = "SUCCESS: DOWNLOADING...";
-                    window.location.href = `https://${server}/v1/download/${task}`;
-                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
+                    if (pRes.ok) {
+                        status.innerText = "SUCCESS: DOWNLOADING...";
+                        window.location.href = `https://${server}/v1/download/${task}`;
+                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
+                    } else throw new Error("API Finalization Failed");
                 }
             } catch (err) { console.error(err); status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
