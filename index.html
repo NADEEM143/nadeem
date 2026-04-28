@@ -144,7 +144,7 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; pBar.style.width = "0%"; }
+        function closeModal() { overlay.style.display = 'none'; pBar.style.width = "0%"; pContainer.style.display = 'none'; }
         function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
@@ -185,46 +185,38 @@
 
         document.getElementById('finalDownload').onclick = async function() {
             if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_MERGED_FILE.jpg";
-                link.click();
-                closeModal();
-                return;
+                const link = document.createElement('a'); link.href = URL.createObjectURL(processedBlob);
+                link.download = "NADIM_MERGED_ASSET.jpg"; link.click(); closeModal(); return;
             }
 
-            status.style.display = 'block'; status.innerText = "HANDSHAKE...";
+            status.style.display = 'block'; status.innerText = "INITIATING SERVER PROCESS...";
             try {
-                const res = await fetch('/api/process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tool: currentTool }) });
+                const fd = new FormData();
+                fd.append('tool', currentTool);
+                fd.append('file', selectedFileList[0]); // Physical file binary to server
+
+                const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
-                console.log("API RESPONSE:", data);
+                
                 if (data.status === "SUCCESS") {
                     const { server, task, token, tool: activeTool } = data;
-                    status.innerText = "UPLOADING..."; pContainer.style.display = 'block';
-                    const fd = new FormData(); fd.append('task', task);
-                    fd.append('file', selectedFileList[0], selectedFileList[0].name); // 
-                    console.log("DEBUG START");
-console.log("TASK:", task);
-console.log("FILE:", selectedFileList[0]);
-console.log("NAME:", selectedFileList[0]?.name);
-console.log("TYPE:", selectedFileList[0]?.type);
-                    await new Promise((resolve, reject) => {
-                        const xhr = new XMLHttpRequest();
-                        xhr.open('POST', `https://${server}/v1/upload?task=${task}&token=${token}`);
-                        xhr.upload.onprogress = (e) => { if (e.lengthComputable) pBar.style.width = (e.loaded / e.total * 100) + "%"; };
-                        xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) resolve(); else reject(); };
-                        xhr.onerror = () => reject();
-                        xhr.send(fd);
-                    });
+                    status.innerText = "ENGINEERING DOCUMENT...";
                     
-                    status.innerText = "ENGINEERING...";
                     const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
                     const pRes = await fetch(`https://${server}/v1/process`, { 
                         method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ task, tool: activeTool, pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, compression_level: currentTool === 'compress' ? compressionLevel : undefined }) 
+                        body: JSON.stringify({ 
+                            task, tool: activeTool, 
+                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, 
+                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
+                        }) 
                     });
-                    if (pRes.ok) { window.location.href = `https://${server}/v1/download/${task}`; closeModal(); }
-                    else throw new Error();
+                    
+                    if (pRes.ok) { 
+                        status.innerText = "SUCCESS: DOWNLOADING...";
+                        window.location.href = `https://${server}/v1/download/${task}`; 
+                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 2000);
+                    } else throw new Error();
                 }
             } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
         };
