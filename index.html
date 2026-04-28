@@ -212,14 +212,23 @@
                         }) 
                     });
                     
-                    if (pRes.ok) { 
-                        status.innerText = "SUCCESS: DOWNLOADING...";
-                        window.location.href = `https://${server}/v1/download/${task}`; 
-                        setTimeout(() => { status.style.display = 'none'; closeModal(); }, 2000);
-                    } else throw new Error();
+                                if (data.status === "SUCCESS") {
+                    status.innerText = "SUCCESS: DOWNLOADING...";
+                    // Use BACKTICKS (the key next to '1')
+                    window.location.href = `https://${data.server}/v1/download/${data.task}`;
+                    
+                    setTimeout(() => { 
+                        status.style.display = 'none'; 
+                        closeModal(); 
+                    }, 3000);
                 }
-            } catch (err) { status.innerText = "ENGINE ERROR."; setTimeout(() => status.style.display = 'none', 3000); }
+            } catch (err) { 
+                console.error(err);
+                status.innerText = "ENGINE ERROR."; 
+                setTimeout(() => status.style.display = 'none', 3000); 
+            }
         };
+
     </script>
 </body>
 </html>
