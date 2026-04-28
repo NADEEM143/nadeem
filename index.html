@@ -185,42 +185,34 @@
 
         document.getElementById('finalDownload').onclick = async function() {
             if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a'); link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_MERGED_ASSET.jpg"; link.click(); closeModal(); return;
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(processedBlob);
+                link.download = "NADIM_MERGED_ASSET.jpg";
+                link.click();
+                closeModal();
+                return;
             }
 
             status.style.display = 'block'; status.innerText = "INITIATING SERVER PROCESS...";
             try {
                 const fd = new FormData();
                 fd.append('tool', currentTool);
-                fd.append('file', selectedFileList[0]); // Physical file binary to server
+                fd.append('file', selectedFileList[0]); // Targets physical document
 
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
                 
                 if (data.status === "SUCCESS") {
-                    const { server, task, token, tool: activeTool } = data;
-                    status.innerText = "ENGINEERING DOCUMENT...";
-                    
-                    const compressionLevel = ["extreme", "recommended", "low"][document.getElementById('compSlider').value - 1];
-                    const pRes = await fetch(`https://${server}/v1/process`, { 
-                        method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ 
-                            task, tool: activeTool, 
-                            pdfocr_convert_to: currentTool === 'pdfword' ? 'docx' : undefined, 
-                            compression_level: currentTool === 'compress' ? compressionLevel : undefined 
-                        }) 
-                    });
-                    
-                                if (data.status === "SUCCESS") {
                     status.innerText = "SUCCESS: DOWNLOADING...";
-                    // Use BACKTICKS (the key next to '1')
+                    // CRITICAL: CORRECT BACKTICKS AND VARIABLE SYNTAX
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
                     
                     setTimeout(() => { 
                         status.style.display = 'none'; 
                         closeModal(); 
                     }, 3000);
+                } else {
+                    throw new Error("Server process failed");
                 }
             } catch (err) { 
                 console.error(err);
@@ -228,7 +220,6 @@
                 setTimeout(() => status.style.display = 'none', 3000); 
             }
         };
-
     </script>
 </body>
 </html>
