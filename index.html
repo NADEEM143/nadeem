@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NADIM PDF | Elite Document Intelligence</title>
     <style>
-        /* --- ELITE PREMIUM DESIGN SYSTEM --- */
         :root {
             --brand-accent: #6366f1;
             --midnight: #020617;
@@ -219,7 +218,7 @@
                     });
                     if (pRes.ok) {
                         status.innerText = "SUCCESS: DOWNLOADING...";
-                        window.location.href = `https://${server}/v1/download/${task}`;
+                        window.location.href = `https://${data.server}/v1/download/${data.task}`;
                         setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                     } else throw new Error();
                 }
