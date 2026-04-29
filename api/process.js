@@ -3,11 +3,15 @@ const FormData = require('form-data');
 const multiparty = require('multiparty');
 const fs = require('fs');
 
+// Required for Vercel to handle file uploads
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
+    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
+
     const form = new multiparty.Form();
     form.parse(req, async (err, fields, files) => {
+        // Correctly extract tool and file from multiparty arrays
         if (err || !files.file || !files.file[0]) {
             return res.status(500).json({ status: "ERROR", details: "File missing" });
         }
@@ -23,17 +27,18 @@ module.exports = async (req, res) => {
             });
             const token = authRes.data.token;
 
-            // 2. START TASK (Synchronized with GitHub naming)
-            // The library expects 'officepdf' for Word and 'pdfword' for PDF to Word
-            let engineTool = (tool === 'officepdf') ? 'officepdf' : 
-                             (tool === 'pdfword' ? 'pdfword' : tool);
-
+            // 2. START TASK (Official Production Engine Names)
+            let engineTool = tool;
+            if (tool === 'officepdf') engineTool = 'officepdf'; // Word to PDF
+            if (tool === 'pdfword') engineTool = 'pdfword';     // PDF to Word
+            if (tool === 'compress') engineTool = 'compress';   // Compression
+            
             const startRes = await axios.get(`https://api.ilovepdf.com/v1/start/${engineTool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const { server, task } = startRes.data;
 
-            // 3. UPLOAD ASSET
+            // 3. UPLOAD ASSET (Server-to-Server)
             const uploadFormData = new FormData();
             uploadFormData.append('task', task);
             uploadFormData.append('file', fs.createReadStream(file.path));
@@ -45,10 +50,11 @@ module.exports = async (req, res) => {
                 }
             });
 
-            // --- SAFETY BUFFER TO PREVENT PROCESSINGERROR ---
+            // 4. THE 3-SECOND SAFETY BUFFER
+            // This is the CRITICAL fix for the "Task can't be processed" error
             await new Promise(resolve => setTimeout(resolve, 3000));
 
-            // 4. EXECUTE ENGINE
+            // 5. EXECUTE ENGINE (Deducts 1 Credit)
             await axios.post(`https://${server}/v1/process`, { 
                 task: task, 
                 tool: engineTool 
@@ -56,11 +62,12 @@ module.exports = async (req, res) => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            // 5. SEND SUCCESS DATA
+            // 6. SEND SUCCESS DATA BACK TO FRONTEND
             res.status(200).json({ status: "SUCCESS", server, task });
 
         } catch (error) {
-            console.error("ENGINE_FAILURE:", error.response?.data || error.message);
+            // Logs the exact reason for failure in your Vercel Dashboard
+            console.error("ENGINE_LOG:", error.response?.data || error.message);
             res.status(500).json({ status: "ERROR", details: error.response?.data || error.message });
         }
     });
