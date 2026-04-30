@@ -104,6 +104,7 @@
     <div id="overlay">
         <div class="modal-box">
             <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
+            
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
@@ -111,6 +112,7 @@
                     <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
+
             <div id="compressConfig" class="config-section" style="display:none;">
                 <span class="section-label">Optimization Intensity</span>
                 <div style="display: flex; justify-content: space-between; font-weight: 800;">
@@ -118,10 +120,12 @@
                 </div>
                 <input type="range" min="1" max="3" value="2" style="width: 100%; accent-color: var(--brand-accent); margin: 20px 0;" id="compSlider" oninput="updateCompLabel(this.value)">
             </div>
+
             <div class="config-section">
                 <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
                 <div id="progressContainer"><div id="progressBar"></div></div>
             </div>
+
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
@@ -132,7 +136,15 @@
     <div id="status">NADIM ENGINE ACTIVE</div>
 
     <script>
-        const picker = document.getElementById('filePicker'), status = document.getElementById('status'), overlay = document.getElementById('overlay'), reviewContainer = document.getElementById('reviewContainer'), canvas = document.getElementById('mergeCanvas'), ctx = canvas.getContext('2d'), pContainer = document.getElementById('progressContainer'), pBar = document.getElementById('progressBar');
+        const picker = document.getElementById('filePicker'), 
+              status = document.getElementById('status'), 
+              overlay = document.getElementById('overlay'), 
+              reviewContainer = document.getElementById('reviewContainer'), 
+              canvas = document.getElementById('mergeCanvas'), 
+              ctx = canvas.getContext('2d'), 
+              pContainer = document.getElementById('progressContainer'), 
+              pBar = document.getElementById('progressBar');
+              
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
 
         function runTool(tool) { 
@@ -144,7 +156,11 @@
         }
 
         function closeModal() { overlay.style.display = 'none'; picker.value = ""; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
-        function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
+        
+        function updateCompLabel(v) { 
+            const p = ["90%", "60%", "30%"]; 
+            document.getElementById('qVal').innerText = p[v-1]; 
+        }
         
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
@@ -161,13 +177,17 @@
         }
 
         picker.onchange = async function() {
-            selectedFileList = Array.from(this.files).slice(0, 100);
+            selectedFileList = this.files;
             if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
                 document.getElementById('compressConfig').style.display = currentTool === 'compress' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') await generateMergePreview();
-                else reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                if (currentTool === 'imagepdf') {
+                    selectedFileList = Array.from(this.files).slice(0, 100);
+                    await generateMergePreview();
+                } else {
+                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">DOCUMENT SECURED & READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                }
             }
         };
 
@@ -186,24 +206,24 @@
         document.getElementById('finalDownload').onclick = async function() {
             if (selectedFileList.length === 0 && !processedBlob) return;
             
-            // Instant execution for local image merging
+            // Handle local image consolidation instantly
             if (currentTool === 'imagepdf' && processedBlob) {
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_MERGED_ASSET.jpg";
+                link.download = "NADIM_CONSOLIDATED.jpg";
                 link.click();
                 closeModal();
                 return;
             }
 
             status.style.display = 'block'; 
-            status.innerText = "ENGINEERING DOCUMENT...";
+            status.innerText = "COMMIT & EXECUTE ENGINE...";
 
             try {
                 const fd = new FormData();
                 fd.append('tool', currentTool);
                 
-                // FIXED: Append the actual physical file binary
+                // FIXED: Append the actual physical file binary [0]
                 if (currentTool === 'imagepdf' && processedBlob) {
                     fd.append('file', processedBlob, 'merged.jpg');
                 } else {
@@ -219,7 +239,7 @@
 
                 if (data.status === "SUCCESS") {
                     status.innerText = "SUCCESS: DOWNLOADING...";
-                    // Trigger download from iLovePDF storage
+                    // Use the task data returned from Vercel to trigger download
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
                     
                     setTimeout(() => { 
@@ -227,11 +247,11 @@
                         closeModal(); 
                     }, 3000);
                 } else {
-                    throw new Error(data.details || "Final Rejection");
+                    throw new Error(data.details || "Engine Rejection");
                 }
             } catch (err) {
                 console.error(err);
-                status.innerText = "ENGINE ERROR: FILE REJECTED";
+                status.innerText = "ENGINE ERROR: REJECTED";
                 setTimeout(() => status.style.display = 'none', 3000);
             }
         };
