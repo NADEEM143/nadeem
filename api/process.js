@@ -8,30 +8,30 @@ module.exports = async (req, res) => {
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
-        if (err || !files.file || !fields.tool) {
-            return res.status(500).json({ status: "ERROR", details: "Payload incomplete" });
-        }
+        if (err || !files.file) return res.status(500).json({ error: "UPLOAD_FAILED" });
 
         try {
-            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            // Standardize tool name
+            const raw = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            const tool = raw.toLowerCase().replace(/[^a-z]/g, '');
+            
             const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
+            // 1. Initialize Task
             const task = instance.newTask(tool);
             
-            // 1. Start Task
+            // 2. Start & Upload
             await task.start();
-            
-            // 2. Upload File
             await task.addFile(file.path);
-            
-            // 3. THE CRITICAL FIX: FORCE WAIT
-            // We wait 3 seconds to ensure iLovePDF's internal storage syncs the file.
+
+            // --- THE TINY THING: FORCE SYNC DELAY ---
+            // We wait 3 seconds to let the iLovePDF server 'catch' the file binary
             await new Promise(resolve => setTimeout(resolve, 3000));
 
-            // 4. Trigger Process (No 'await' to avoid Vercel's 10s timeout)
-            task.process(); 
+            // 3. Trigger Process (Do NOT 'await' to avoid Vercel 10s timeout)
+            task.process();
 
-            // 5. Immediate Success Response
+            // 4. Success Response
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
@@ -39,8 +39,8 @@ module.exports = async (req, res) => {
             });
 
         } catch (e) {
-            console.error("ILOVEPDF_ENGINE_ERROR:", e.message || "Engine Rejection");
-            res.status(500).json({ status: "ERROR", details: e.message });
+            console.error("ENGINE_LOG:", e.message);
+            res.status(500).json({ error: e.message });
         }
     });
 };
