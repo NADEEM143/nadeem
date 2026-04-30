@@ -13,30 +13,25 @@ module.exports = async (req, res) => {
         }
 
         try {
-            // 1. TOOL CLEANER: Maps your frontend names to official engine IDs
-            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const toolMap = {
-                'officepdf': 'officepdf',
-                'pdfword': 'pdfword',
-                'compress': 'compress',
-                'imagepdf': 'imagepdf'
-            };
-            const toolName = toolMap[rawTool] || rawTool;
-
-            // 2. EXTRACT FILE
+            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
             const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            console.log(`ENGINE_START: Tool=${toolName} | Size=${file.size} bytes`);
-
-            // 3. OFFICIAL TASK CHAIN
-            const task = instance.newTask(toolName);
+            const task = instance.newTask(tool);
+            
+            // 1. Start Task
             await task.start();
+            
+            // 2. Upload File
             await task.addFile(file.path);
             
-            // 4. ASYNC PROCESS: Bypasses Vercel 10s limit
+            // 3. THE CRITICAL FIX: FORCE WAIT
+            // We wait 3 seconds to ensure iLovePDF's internal storage syncs the file.
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // 4. Trigger Process (No 'await' to avoid Vercel's 10s timeout)
             task.process(); 
 
-            // 5. SUCCESS RESPONSE
+            // 5. Immediate Success Response
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
