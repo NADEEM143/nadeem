@@ -104,7 +104,6 @@
     <div id="overlay">
         <div class="modal-box">
             <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
-            
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
@@ -112,7 +111,6 @@
                     <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
-
             <div id="compressConfig" class="config-section" style="display:none;">
                 <span class="section-label">Optimization Intensity</span>
                 <div style="display: flex; justify-content: space-between; font-weight: 800;">
@@ -120,12 +118,10 @@
                 </div>
                 <input type="range" min="1" max="3" value="2" style="width: 100%; accent-color: var(--brand-accent); margin: 20px 0;" id="compSlider" oninput="updateCompLabel(this.value)">
             </div>
-
             <div class="config-section">
                 <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
                 <div id="progressContainer"><div id="progressBar"></div></div>
             </div>
-
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
@@ -136,15 +132,7 @@
     <div id="status">NADIM ENGINE ACTIVE</div>
 
     <script>
-        const picker = document.getElementById('filePicker'), 
-              status = document.getElementById('status'), 
-              overlay = document.getElementById('overlay'), 
-              reviewContainer = document.getElementById('reviewContainer'), 
-              canvas = document.getElementById('mergeCanvas'), 
-              ctx = canvas.getContext('2d'), 
-              pContainer = document.getElementById('progressContainer'), 
-              pBar = document.getElementById('progressBar');
-              
+        const picker = document.getElementById('filePicker'), status = document.getElementById('status'), overlay = document.getElementById('overlay'), reviewContainer = document.getElementById('reviewContainer'), canvas = document.getElementById('mergeCanvas'), ctx = canvas.getContext('2d'), pContainer = document.getElementById('progressContainer'), pBar = document.getElementById('progressBar');
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
 
         function runTool(tool) { 
@@ -156,11 +144,7 @@
         }
 
         function closeModal() { overlay.style.display = 'none'; picker.value = ""; pContainer.style.display = 'none'; pBar.style.width = "0%"; }
-        
-        function updateCompLabel(v) { 
-            const p = ["90%", "60%", "30%"]; 
-            document.getElementById('qVal').innerText = p[v-1]; 
-        }
+        function updateCompLabel(v) { const p = ["90%", "60%", "30%"]; document.getElementById('qVal').innerText = p[v-1]; }
         
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
@@ -192,7 +176,7 @@
         };
 
         async function generateMergePreview() {
-            const imgs = await Promise.all(selectedFileList.map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
+            const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
             if (mergeAxis === 'horizontal') {
                 canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
                 let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
@@ -206,14 +190,9 @@
         document.getElementById('finalDownload').onclick = async function() {
             if (selectedFileList.length === 0 && !processedBlob) return;
             
-            // Handle local image consolidation instantly
             if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_CONSOLIDATED.jpg";
-                link.click();
-                closeModal();
-                return;
+                const link = document.createElement('a'); link.href = URL.createObjectURL(processedBlob);
+                link.download = "NADIM_MERGED.jpg"; link.click(); closeModal(); return;
             }
 
             status.style.display = 'block'; 
@@ -223,29 +202,21 @@
                 const fd = new FormData();
                 fd.append('tool', currentTool);
                 
-                // FIXED: Append the actual physical file binary [0]
                 if (currentTool === 'imagepdf' && processedBlob) {
                     fd.append('file', processedBlob, 'merged.jpg');
                 } else {
+                    // Send actual file binary from the list
                     fd.append('file', selectedFileList[0]);
                 }
 
-                const res = await fetch('/api/process', { 
-                    method: 'POST', 
-                    body: fd 
-                });
-                
+                const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
 
                 if (data.status === "SUCCESS") {
                     status.innerText = "SUCCESS: DOWNLOADING...";
-                    // Use the task data returned from Vercel to trigger download
+                    // Use server and task ID from your Vercel response
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
-                    
-                    setTimeout(() => { 
-                        status.style.display = 'none'; 
-                        closeModal(); 
-                    }, 3000);
+                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 3000);
                 } else {
                     throw new Error(data.details || "Engine Rejection");
                 }
