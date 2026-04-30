@@ -4,38 +4,31 @@ const multiparty = require('multiparty');
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
-    if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
-
+    // 1. Initialize official engine
     const instance = new ILovePDFApi(process.env.ILOVEPDF_PUBLIC_KEY, process.env.ILOVEPDF_SECRET_KEY);
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
         try {
-            if (err || !files.file || !fields.tool) throw new Error("Data missing");
-
-            const toolName = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            // 2. Extract tool name and file path
+            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
             const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            const task = instance.newTask(toolName);
-
-            // 1. START & UPLOAD (This is fast)
+            // 3. Official Library Chain (Auth -> Start -> Upload -> Process)
+            const task = instance.newTask(tool);
             await task.start();
             await task.addFile(file.path);
-
-            // 2. TRIGGER PROCESS BUT DON'T WAIT FOR IT TO FINISH
-            // This prevents the 10-second timeout
+            
+            // We trigger process but don't await to beat Vercel's 10s timeout
             task.process(); 
 
-            // 3. IMMEDIATELY SEND SUCCESS DATA
-            // The browser will handle the "waiting" part
+            // 4. Return success data to your index.html
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
                 task: task.id 
             });
-
         } catch (e) {
-            console.error("SERVER_CRASH:", e.message);
             res.status(500).json({ status: "ERROR", details: e.message });
         }
     });
