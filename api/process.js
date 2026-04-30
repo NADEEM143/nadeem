@@ -10,30 +10,30 @@ module.exports = async (req, res) => {
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
-        // 1. Critical Check: Did the file actually land on Vercel?
-        if (err || !files || !files.file || !files.file[0]) {
+        // 1. Critical Check: Did the file land?
+        if (err || !files || !files.file) {
             return res.status(500).json({ status: "ERROR", details: "File transfer failed" });
         }
 
         try {
-            // 2. Extract single strings from the Multiparty arrays
+            // 2. Exact Extraction (Ensures we get a STRING, not an array or object)
             const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const file = files.file[0]; // Pick the first physical file
+            const fileObj = Array.isArray(files.file) ? files.file[0] : files.file;
+            const filePath = fileObj.path;
 
-            // 3. Initialize and Start (Wait for iLovePDF to give us a server)
+            if (!filePath) throw new Error("Internal file path is missing");
+
+            // 3. Initialize and Start
             const task = instance.newTask(tool);
             await task.start();
 
-            // 4. Add File (Using the physical temporary path)
-            await task.addFile(file.path);
+            // 4. Add File using the physical path string
+            await task.addFile(filePath);
             
-            // 5. THE FIX: Wait 2 seconds for the file to "settle" on their server
-            await new Promise(resolve => setTimeout(resolve, 2000));
-
-            // 6. Trigger process (No 'await' to beat Vercel's 10s limit)
+            // 5. Trigger process but don't await (to beat Vercel's 10s limit)
             task.process(); 
 
-            // 7. Success: Respond immediately
+            // 6. Success: Respond immediately
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
@@ -41,8 +41,7 @@ module.exports = async (req, res) => {
             });
 
         } catch (e) {
-            // This will now print the REAL error message in your Vercel logs
-            const realError = e.message || "Unknown Engine Rejection";
+            const realError = e.message || "Engine rejected the file structure";
             console.error("ILOVEPDF_ENGINE_ERROR:", realError);
             res.status(500).json({ status: "ERROR", details: realError });
         }
