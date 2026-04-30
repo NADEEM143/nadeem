@@ -1,6 +1,4 @@
 {
-  "name": "nadim-pdf-engine",
-  "version": "1.0.0",
   "dependencies": {
     "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "multiparty": "^4.2.3"
