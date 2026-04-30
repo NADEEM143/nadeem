@@ -10,30 +10,29 @@ module.exports = async (req, res) => {
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
-        // 1. Critical Check: Did the file land?
+        // 1. Validate Upload
         if (err || !files || !files.file) {
             return res.status(500).json({ status: "ERROR", details: "File transfer failed" });
         }
 
         try {
-            // 2. Exact Extraction (Ensures we get a STRING, not an array or object)
+            // 2. Extract Data
             const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const fileObj = Array.isArray(files.file) ? files.file[0] : files.file;
-            const filePath = fileObj.path;
+            const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            if (!filePath) throw new Error("Internal file path is missing");
+            console.log(`LOG: Engine starting for ${tool}. File size: ${file.size} bytes.`);
 
-            // 3. Initialize and Start
+            // 3. Initialize Task
             const task = instance.newTask(tool);
             await task.start();
 
-            // 4. Add File using the physical path string
-            await task.addFile(filePath);
+            // 4. Add File using the direct temporary path
+            await task.addFile(file.path);
             
             // 5. Trigger process but don't await (to beat Vercel's 10s limit)
             task.process(); 
 
-            // 6. Success: Respond immediately
+            // 6. Respond immediately with success
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
@@ -41,9 +40,8 @@ module.exports = async (req, res) => {
             });
 
         } catch (e) {
-            const realError = e.message || "Engine rejected the file structure";
-            console.error("ILOVEPDF_ENGINE_ERROR:", realError);
-            res.status(500).json({ status: "ERROR", details: realError });
+            console.error("ILOVEPDF_ENGINE_ERROR:", e.message || "Final Rejection");
+            res.status(500).json({ status: "ERROR", details: e.message });
         }
     });
 };
