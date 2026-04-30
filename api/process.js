@@ -1,43 +1,55 @@
-const axios = require('axios');
+const ILovePDFApi = require('@ilovepdf/ilovepdf-nodejs');
+const multiparty = require('multiparty');
+
+// Vercel config to allow file uploads
+module.exports.config = {
+    api: { bodyParser: false }
+};
 
 module.exports = async (req, res) => {
     if (req.method !== "POST") return res.status(405).send("Method Not Allowed");
 
-    const PUBLIC_KEY = process.env.ILOVEPDF_PUBLIC_KEY;
-    const SECRET_KEY = process.env.ILOVEPDF_SECRET_KEY;
+    // Initialize the official library using your Environment Variables
+    const instance = new ILovePDFApi(
+        process.env.ILOVEPDF_PUBLIC_KEY, 
+        process.env.ILOVEPDF_SECRET_KEY
+    );
+
+    const form = new multiparty.Form();
     
-    try {
-        const { tool = 'officepdf' } = req.body;
-        
-        // STEP 1: AUTHENTICATION
-        const authResponse = await axios.post('https://api.ilovepdf.com/v1/auth', {
-            public_key: PUBLIC_KEY,
-            secret_key: SECRET_KEY
-        }, { timeout: 10000 });
+    form.parse(req, async (err, fields, files) => {
+        if (err || !files.file || !files.file[0]) {
+            return res.status(500).json({ status: "ERROR", details: "File missing" });
+        }
 
-        const token = authResponse.data.token;
+        try {
+            const tool = fields.tool[0]; // 'officepdf', 'pdfword', or 'compress'
+            const file = files.file[0];
 
-        // STEP 2: TOOL MAPPING
-        let engineTool = tool;
-        if (tool === 'pdfword') engineTool = 'pdfocr';
-        if (tool === 'pdf') engineTool = 'officepdf';
+            // 1. Create a Task (The library handles Auth and Start automatically)
+            // It uses 'officepdf' for Word and 'pdfword' for PDF-to-Word
+            const task = instance.newTask(tool);
 
-        // STEP 3: START TASK
-        const startResponse = await axios.get(`https://api.ilovepdf.com/v1/start/${engineTool}`, {
-            headers: { 'Authorization': `Bearer ${token}` },
-            timeout: 10000
-        });
+            // 2. Upload the file binary
+            await task.addFile(file.path);
 
-        res.status(200).json({
-            status: "SUCCESS",
-            server: startResponse.data.server,
-            task: startResponse.data.task,
-            token: token,
-            tool: engineTool
-        });
+            // 3. Process the file (Deducts 1 credit)
+            // The library waits for the server to be ready automatically
+            await task.process();
 
-    } catch (err) {
-        console.error("LOG_ERROR:", err.response?.data || err.message);
-        res.status(500).json({ error: "HANDSHAKE_FAILED", details: err.message });
-    }
+            // 4. Return the server and task ID for the frontend download
+            res.status(200).json({ 
+                status: "SUCCESS", 
+                server: task.server, 
+                task: task.id 
+            });
+
+        } catch (error) {
+            console.error("OFFICIAL_ENGINE_ERROR:", error.message);
+            res.status(500).json({ 
+                status: "ERROR", 
+                details: error.message 
+            });
+        }
+    });
 };
