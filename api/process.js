@@ -10,26 +10,33 @@ module.exports = async (req, res) => {
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
-        // SAFETY CHECK: Ensure files were actually uploaded
         if (err || !files || !files.file) {
-            console.error("UPLOAD_ERROR:", err || "No file found in request");
-            return res.status(500).json({ status: "ERROR", details: "File upload failed" });
+            return res.status(500).json({ status: "ERROR", details: "File missing" });
         }
 
         try {
-            // Extract single values from multiparty arrays
-            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            // --- SAFETY MAP ---
+            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            
+            // Map your frontend clicks to the official library names
+            const toolMap = {
+                'officepdf': 'officepdf',
+                'pdfword': 'pdfword',
+                'compress': 'compress',
+                'imagepdf': 'imagepdf'
+            };
+
+            const toolName = toolMap[rawTool] || rawTool;
             const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            // Start the official engine
-            const task = instance.newTask(tool);
+            console.log("DIAGNOSTIC: Starting engine with tool ->", toolName);
+
+            const task = instance.newTask(toolName);
             await task.start();
             await task.addFile(file.path);
             
-            // Process (Don't await to stay under Vercel's 10s limit)
             task.process(); 
 
-            // Return success data
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
@@ -37,7 +44,8 @@ module.exports = async (req, res) => {
             });
 
         } catch (e) {
-            console.error("ENGINE_CRASH:", e.message);
+            // This captures the exact reason for the crash
+            console.error("ENGINE_CRASH_REASON:", e.message);
             res.status(500).json({ status: "ERROR", details: e.message });
         }
     });
