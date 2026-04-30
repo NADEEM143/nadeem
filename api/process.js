@@ -10,33 +10,30 @@ module.exports = async (req, res) => {
     const form = new multiparty.Form();
 
     form.parse(req, async (err, fields, files) => {
-        if (err || !files || !files.file) {
-            return res.status(500).json({ status: "ERROR", details: "File missing" });
+        // 1. Check if the file actually reached the server
+        if (err || !files || !files.file || !files.file[0]) {
+            console.error("LOG: File upload failed at the gateway.");
+            return res.status(500).json({ status: "ERROR", details: "File not received" });
         }
 
         try {
-            // --- SAFETY MAP ---
-            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            
-            // Map your frontend clicks to the official library names
-            const toolMap = {
-                'officepdf': 'officepdf',
-                'pdfword': 'pdfword',
-                'compress': 'compress',
-                'imagepdf': 'imagepdf'
-            };
+            // 2. Extract single values from arrays
+            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            const file = files.file[0]; // The actual file object
 
-            const toolName = toolMap[rawTool] || rawTool;
-            const file = Array.isArray(files.file) ? files.file[0] : files.file;
+            console.log("LOG: Initializing task for:", tool);
 
-            console.log("DIAGNOSTIC: Starting engine with tool ->", toolName);
-
-            const task = instance.newTask(toolName);
+            // 3. Start Task
+            const task = instance.newTask(tool);
             await task.start();
+
+            // 4. Add File using the temporary path provided by multiparty
             await task.addFile(file.path);
             
+            // 5. Trigger process but don't await (to beat Vercel's 10s timeout)
             task.process(); 
 
+            // 6. Return success info immediately
             res.status(200).json({ 
                 status: "SUCCESS", 
                 server: task.server, 
@@ -44,8 +41,8 @@ module.exports = async (req, res) => {
             });
 
         } catch (e) {
-            // This captures the exact reason for the crash
-            console.error("ENGINE_CRASH_REASON:", e.message);
+            // This will capture the specific API error from iLovePDF
+            console.error("ILOVEPDF_ENGINE_ERROR:", e.message);
             res.status(500).json({ status: "ERROR", details: e.message });
         }
     });
