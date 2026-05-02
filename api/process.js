@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
             const token = auth.data.token;
 
             // 3. START TASK (CORRECTED URL WITH $ AND PATH)
-            const start = await axios.get(`https://api.ilovepdf.com{tool}`, {
+            const start = await axios.get(`https://api.ilovepdf.com${tool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
