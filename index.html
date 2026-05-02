@@ -126,9 +126,10 @@
               overlay = document.getElementById('overlay'), 
               reviewContainer = document.getElementById('reviewContainer'), 
               canvas = document.getElementById('mergeCanvas'), 
-              ctx = canvas.getContext('2d');
+              ctx = canvas.getContext('2d'),
+              actionBtn = document.getElementById('finalDownload');
               
-        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
+        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, currentTaskData = null;
 
         function runTool(tool) { 
             currentTool = tool; picker.value = ""; 
@@ -138,7 +139,16 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; status.style.display = 'none'; }
+        function closeModal() { 
+            overlay.style.display = 'none'; 
+            picker.value = ""; 
+            processedBlob = null; 
+            status.style.display = 'none'; 
+            isReadyForDownload = false;
+            actionBtn.innerText = "Commit & Execute Engine";
+            actionBtn.style.background = "#fff";
+            actionBtn.style.color = "var(--midnight)";
+        }
 
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
@@ -171,7 +181,13 @@
             canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
         }
 
-        document.getElementById('finalDownload').onclick = async function() {
+        actionBtn.onclick = async function() {
+            if (isReadyForDownload && currentTaskData) {
+                window.location.href = `https://${currentTaskData.server}/v1/download/${currentTaskData.task}`;
+                setTimeout(closeModal, 2000);
+                return;
+            }
+
             if (selectedFileList.length === 0 && !processedBlob) return;
             
             if (currentTool === 'imagepdf' && processedBlob) {
@@ -181,54 +197,53 @@
 
             status.style.display = 'block'; 
             status.innerText = "ENGAGING ENGINE...";
+            actionBtn.disabled = true;
 
             try {
-                // FIXED: binary fix
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-
                 const fd = new FormData();
                 fd.append('tool', currentTool);
                 fd.append('file', fileToUpload);
 
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
-                const data = await res.json();
+                currentTaskData = await res.json();
 
-                if (data.status === "SUCCESS") {
-                    status.innerText = "UPLOADING TO CORE...";
+                if (currentTaskData.status === "SUCCESS") {
+                    status.innerText = "UPLOADING ASSET...";
                     const uploadFd = new FormData();
-                    uploadFd.append('task', data.task);
+                    uploadFd.append('task', currentTaskData.task);
                     uploadFd.append('file', fileToUpload);
 
-                    await fetch(`https://${data.server}/v1/upload`, {
+                    await fetch(`https://${currentTaskData.server}/v1/upload`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
+                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
                         body: uploadFd
                     });
 
-                    // MANDATORY PROCESS STEP
-                    status.innerText = "PROCESSING...";
+                    status.innerText = "CONVERTING DOCUMENT...";
                     const procFd = new FormData();
-                    procFd.append('task', data.task);
+                    procFd.append('task', currentTaskData.task);
                     procFd.append('tool', currentTool);
-                    await fetch(`https://${data.server}/v1/process`, {
+                    
+                    const procRes = await fetch(`https://${currentTaskData.server}/v1/process`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
+                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
                         body: procFd
                     });
 
-                    // Wait 2 seconds for server filesystem sync
-                    await new Promise(r => setTimeout(r, 2000));
-
-                    status.innerText = "DOWNLOADING...";
-                    window.location.href = `https://${data.server}/v1/download/${data.task}`;
-                    
-                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
-                } else {
-                    throw new Error(data.details || "Handshake Failed");
+                    if (procRes.ok) {
+                        status.innerText = "PROCESS COMPLETE";
+                        isReadyForDownload = true;
+                        actionBtn.disabled = false;
+                        actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
+                        actionBtn.style.background = "var(--brand-accent)";
+                        actionBtn.style.color = "#fff";
+                    } else { throw new Error("Processing Failed"); }
                 }
             } catch (err) {
                 console.error(err);
                 status.innerText = "ENGINE ERROR: RETRY";
+                actionBtn.disabled = false;
                 setTimeout(() => status.style.display = 'none', 3000);
             }
         };
