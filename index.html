@@ -58,7 +58,7 @@
         <div class="card" onclick="runTool('imagepdf')">
             <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
             <h3>Image Consolidation</h3>
-            <p>Combine up to 100 assets into a high-fidelity output.</p>
+            <p>Combine assets into a high-fidelity output.</p>
         </div>
         <div class="card" onclick="runTool('officepdf')">
             <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
@@ -68,7 +68,7 @@
         <div class="card" onclick="runTool('pdfword')">
             <div style="color: #3b82f6; font-weight: 800; font-size: 10px; margin-bottom: 20px;">FLOW</div>
             <h3>PDF to Word</h3>
-            <p>Refactor PDF architecture into editable Word files.</p>
+            <p>Refactor PDF architecture into editable Word.</p>
         </div>
         <div class="card" onclick="runTool('compress')">
             <div style="color: #f43f5e; font-weight: 800; font-size: 10px; margin-bottom: 20px;">PACK</div>
@@ -125,7 +125,7 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; }
+        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; status.style.display = 'none'; }
 
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
@@ -169,9 +169,10 @@
             status.innerText = "ENGAGING ENGINE...";
 
             try {
+                const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
                 const fd = new FormData();
                 fd.append('tool', currentTool);
-                fd.append('file', (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0]);
+                fd.append('file', fileToUpload);
 
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
@@ -180,7 +181,7 @@
                     status.innerText = "UPLOADING...";
                     const uploadFd = new FormData();
                     uploadFd.append('task', data.task);
-                    uploadFd.append('file', (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0]);
+                    uploadFd.append('file', fileToUpload);
 
                     await fetch(`https://${data.server}/v1/upload`, {
                         method: 'POST',
@@ -188,7 +189,7 @@
                         body: uploadFd
                     });
 
-                    // --- FIX: MUST CALL PROCESS BEFORE DOWNLOAD ---
+                    // THE FIX: MANDATORY PROCESSING STEP
                     status.innerText = "PROCESSING...";
                     const procFd = new FormData();
                     procFd.append('task', data.task);
