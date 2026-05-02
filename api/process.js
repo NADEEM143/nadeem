@@ -4,7 +4,7 @@ const multiparty = require('multiparty');
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
-    // 1. ADD THE MISSING HEADERS (iLovePDF support recommended fix)
+    // 1. ADD CORS HEADERS (Required for the iLovePDF fix)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -20,19 +20,19 @@ module.exports = async (req, res) => {
             // Pick the tool name out of the array
             const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
 
-            // 2. AUTHENTICATION (CORRECTED URL)
-            const auth = await axios.post('https://api.ilovepdf.com', {
+            // 2. AUTHENTICATION
+            const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
                 public_key: process.env.ILOVEPDF_PUBLIC_KEY,
                 secret_key: process.env.ILOVEPDF_SECRET_KEY
             });
             const token = auth.data.token;
 
-            // 3. START TASK (CORRECTED URL WITH $ AND PATH)
-            const start = await axios.get(`https://api.ilovepdf.com${tool}`, {
+            // 3. START TASK (Fixed: using the 'tool' variable defined above)
+            const start = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            // 4. SUCCESS: Return data to browser
+            // 4. SUCCESS
             res.status(200).json({
                 status: "SUCCESS",
                 token: token,
