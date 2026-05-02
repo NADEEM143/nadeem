@@ -108,7 +108,7 @@
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">READY FOR ENGINE</p></div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -153,7 +153,7 @@
                     selectedFileList = Array.from(this.files).slice(0, 100);
                     await generateMergePreview();
                 } else {
-                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY FOR PROCESSING</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
                 }
             }
         };
@@ -174,8 +174,7 @@
             if (selectedFileList.length === 0 && !processedBlob) return;
             
             if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a'); 
-                link.href = URL.createObjectURL(processedBlob);
+                const link = document.createElement('a'); link.href = URL.createObjectURL(processedBlob);
                 link.download = "NADIM_CONSOLIDATED.jpg"; link.click(); closeModal(); return;
             }
 
@@ -183,7 +182,7 @@
             status.innerText = "ENGAGING ENGINE...";
 
             try {
-                // FIXED: Must select the first file in the list for single-file tools
+                // FIXED: Must select the actual file binary selectedFileList[0]
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
                 const fd = new FormData();
@@ -205,8 +204,7 @@
                         body: uploadFd
                     });
 
-                    // THE CRITICAL FIX: MUST CALL PROCESS BEFORE DOWNLOAD
-                    status.innerText = "PROCESSING ASSET...";
+                    status.innerText = "PROCESSING...";
                     const procFd = new FormData();
                     procFd.append('task', data.task);
                     procFd.append('tool', currentTool);
@@ -216,6 +214,9 @@
                         headers: { 'Authorization': `Bearer ${data.token}` },
                         body: procFd
                     });
+
+                    // Small delay to ensure the server finishes building the PDF
+                    await new Promise(resolve => setTimeout(resolve, 2000));
 
                     status.innerText = "DOWNLOADING...";
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
