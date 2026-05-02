@@ -4,7 +4,7 @@ const multiparty = require('multiparty');
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
-    // 1. ADD CORS HEADERS (Required for the iLovePDF fix)
+    // 1. ADD CORS HEADERS (The iLovePDF recommended fix)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -17,14 +17,10 @@ module.exports = async (req, res) => {
         if (err || !fields.tool) return res.status(500).json({ error: "Data missing" });
 
         try {
+            // --- THE CLEANER FIX ---
+            // Extracts the string, makes it lowercase, and removes spaces
             const raw = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const toolMap = {
-                'officepdf': 'officepdf',
-                'pdfword': 'pdfword',
-                'compress': 'compress',
-                'imagepdf': 'imagepdf'
-            };
-            const tool = toolMap[raw.toLowerCase().trim()] || raw.toLowerCase().trim();
+            const tool = raw.toLowerCase().trim().replace(/\s+/g, '');
 
             // 2. AUTHENTICATION
             const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
@@ -33,7 +29,7 @@ module.exports = async (req, res) => {
             });
             const token = auth.data.token;
 
-            // 3. START TASK (Fixed: using the 'tool' variable defined above)
+            // 3. START TASK
             const start = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
