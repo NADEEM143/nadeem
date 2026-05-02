@@ -1,54 +1,48 @@
-const ILovePDFApi = require('@ilovepdf/ilovepdf-nodejs');
+const axios = require('axios');
 const multiparty = require('multiparty');
 
-// Required for Vercel to handle binary file uploads
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
-    // 1. Basic Method Check
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
+    // 1. ADD THE MISSING HEADER (iLovePDF's recommended fix)
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // 2. Initialize with your Vercel Environment Variables
-    const instance = new ILovePDFApi(
-        process.env.ILOVEPDF_PUBLIC_KEY,
-        process.env.ILOVEPDF_SECRET_KEY
-    );
+    if (req.method === 'OPTIONS') return res.status(200).end();
+    if (req.method !== 'POST') return res.status(405).send("Method Not Allowed");
 
     const form = new multiparty.Form();
-
     form.parse(req, async (err, fields, files) => {
-        // 3. Extract tool name and file path safely
+        if (err || !fields.tool) return res.status(500).json({ error: "Data missing" });
+
         try {
-            if (err || !files.file || !fields.tool) {
-                throw new Error('Data missing from request');
-            }
-
             const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const file = Array.isArray(files.file) ? files.file[0] : files.file;
 
-            // 4. Create and Start Task
-            const task = instance.newTask(tool);
-            await task.start();
+            // 2. AUTHENTICATION
+            const auth = await axios.post('https://ilovepdf.com', {
+                public_key: process.env.ILOVEPDF_PUBLIC_KEY,
+                secret_key: process.env.ILOVEPDF_SECRET_KEY
+            });
+            const token = auth.data.token;
 
-            // 5. UPLOAD: Server-to-Server (Bypasses the iLovePDF CORS bug)
-            await task.addFile(file.path);
-
-            // 6. PROCESS: Trigger but don't await (to beat Vercel's 10s limit)
-            task.process(); 
-
-            // 7. SUCCESS: Return info to index.html immediately
-            return res.status(200).json({
-                status: 'SUCCESS',
-                server: task.server,
-                task: task.id
+            // 3. START TASK
+            const start = await axios.get(`https://ilovepdf.com{tool}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
 
-        } catch (error) {
-            console.error('ENGINE_LOG:', error.message);
-            return res.status(500).json({ 
-                status: 'ERROR', 
-                message: error.message || 'The engine crashed.' 
+            // 4. SUCCESS: Return the Token and Server to the browser
+            // Now the browser can upload directly because your server "authorized" it
+            res.status(200).json({
+                status: "SUCCESS",
+                token: token,
+                server: start.data.server,
+                task: start.data.task
             });
+
+        } catch (e) {
+            console.error("PROXY_ERROR:", e.message);
+            res.status(500).json({ error: e.message });
         }
     });
 };
