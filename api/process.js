@@ -4,37 +4,45 @@ const multiparty = require('multiparty');
 module.exports.config = { api: { bodyParser: false } };
 
 module.exports = async (req, res) => {
-    // 1. ADD CORS HEADERS (The iLovePDF recommended fix)
+    // 1. ADD CORS HEADERS (The fix recommended by iLovePDF Support)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).send("Method Not Allowed");
 
     const form = new multiparty.Form();
     form.parse(req, async (err, fields, files) => {
-        if (err || !fields.tool) return res.status(500).json({ error: "Data missing" });
+        if (err || !fields.tool) return res.status(400).json({ error: "No tool selected" });
 
         try {
-            // --- THE CLEANER FIX ---
-            // Extracts the string, makes it lowercase, and removes spaces
-            const raw = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-            const tool = raw.toLowerCase().trim().replace(/\s+/g, '');
+            // Pick the tool out of the Vercel array
+            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
 
-            // 2. AUTHENTICATION
+            // 2. THE MASTER MAPPER
+            // This ensures the engine receives the official ID (e.g., 'officepdf')
+            const toolMap = {
+                'officepdf': 'officepdf',
+                'pdfword': 'pdfocr',
+                'compress': 'compress',
+                'imagepdf': 'imagepdf'
+            };
+            
+            const tool = toolMap[rawTool.toLowerCase().trim()] || rawTool.toLowerCase().trim();
+
+            // 3. AUTHENTICATION
             const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
                 public_key: process.env.ILOVEPDF_PUBLIC_KEY,
                 secret_key: process.env.ILOVEPDF_SECRET_KEY
             });
             const token = auth.data.token;
 
-            // 3. START TASK
+            // 4. START TASK (Fixed variable name to 'tool')
             const start = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            // 4. SUCCESS
+            // 5. SUCCESS
             res.status(200).json({
                 status: "SUCCESS",
                 token: token,
