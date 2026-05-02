@@ -104,8 +104,8 @@
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
-                    <button id="btnHor" class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
-                    <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
             <div class="config-section">
@@ -174,6 +174,7 @@
         document.getElementById('finalDownload').onclick = async function() {
             if (selectedFileList.length === 0 && !processedBlob) return;
             
+            // Local merge logic
             if (currentTool === 'imagepdf' && processedBlob) {
                 const link = document.createElement('a'); 
                 link.href = URL.createObjectURL(processedBlob);
@@ -184,13 +185,13 @@
             status.innerText = "ENGAGING ENGINE...";
 
             try {
-                // FIXED: Index 0 binary fix
+                // FIXED: binary selection
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
                 const fd = new FormData();
                 fd.append('tool', currentTool);
                 
-                // 1. Handshake with Vercel (Passing TOOL only to avoid large file multiparty errors)
+                // Only send tool name to Vercel to avoid large file payload errors
                 const handshakeFd = new FormData();
                 handshakeFd.append('tool', currentTool);
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
@@ -198,8 +199,6 @@
 
                 if (data.status === "SUCCESS") {
                     status.innerText = "UPLOADING ASSET...";
-                    
-                    // 2. Direct Upload to iLovePDF
                     const uploadFd = new FormData();
                     uploadFd.append('task', data.task);
                     uploadFd.append('file', fileToUpload);
@@ -210,9 +209,8 @@
                         body: uploadFd
                     });
 
+                    // THE PROCESS STEP: Mandatory before download
                     status.innerText = "CONVERTING...";
-
-                    // 3. EXECUTING PROCESS (The step that stops the XML error)
                     const procFd = new FormData();
                     procFd.append('task', data.task);
                     procFd.append('tool', currentTool);
@@ -223,7 +221,8 @@
                         body: procFd
                     });
 
-                    status.innerText = "DOWNLOADING...";
+                    // RESTORED: Original redirect and timeout logic
+                    status.innerText = "PROCESSING & DOWNLOADING...";
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
                     
                     setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
