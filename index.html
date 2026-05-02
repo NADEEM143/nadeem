@@ -70,7 +70,7 @@
         <div class="card" onclick="runTool('imagepdf')">
             <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
             <h3>Image Consolidation</h3>
-            <p>Combine up to 100 assets into a high-fidelity output.</p>
+            <p>Combine assets into a high-fidelity output.</p>
         </div>
         <div class="card" onclick="runTool('officepdf')">
             <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
@@ -92,7 +92,6 @@
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
-            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -109,7 +108,7 @@
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -141,13 +140,10 @@
 
         function closeModal() { 
             overlay.style.display = 'none'; 
-            picker.value = ""; 
-            processedBlob = null; 
             status.style.display = 'none'; 
             isReadyForDownload = false;
             actionBtn.innerText = "Commit & Execute Engine";
-            actionBtn.style.background = "#fff";
-            actionBtn.style.color = "var(--midnight)";
+            actionBtn.disabled = false;
         }
 
         async function setMergeAxis(axis) { 
@@ -190,17 +186,14 @@
 
             if (selectedFileList.length === 0 && !processedBlob) return;
             
-            if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a'); link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_CONSOLIDATED.jpg"; link.click(); closeModal(); return;
-            }
-
             status.style.display = 'block'; 
             status.innerText = "ENGAGING ENGINE...";
             actionBtn.disabled = true;
 
             try {
+                // FIXED: Must select first binary in list [0]
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
+
                 const fd = new FormData();
                 fd.append('tool', currentTool);
                 fd.append('file', fileToUpload);
