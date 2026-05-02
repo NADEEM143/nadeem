@@ -70,7 +70,7 @@
         <div class="card" onclick="runTool('imagepdf')">
             <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
             <h3>Image Consolidation</h3>
-            <p>Combine assets into a high-fidelity output.</p>
+            <p>Combine up to 100 assets into a high-fidelity output.</p>
         </div>
         <div class="card" onclick="runTool('officepdf')">
             <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
@@ -92,6 +92,7 @@
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -108,7 +109,7 @@
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">READY</p></div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -153,7 +154,7 @@
                     selectedFileList = Array.from(this.files).slice(0, 100);
                     await generateMergePreview();
                 } else {
-                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY FOR PROCESSING</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
                 }
             }
         };
@@ -182,17 +183,18 @@
             status.innerText = "ENGAGING ENGINE...";
 
             try {
-                // FIXED: Selecting index 0 correctly
+                // FIXED: Selecting the actual file binary at index 0
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
                 const fd = new FormData();
                 fd.append('tool', currentTool);
-                // We send a small payload to the backend just to get the token/server
+                fd.append('file', fileToUpload);
+
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
 
                 if (data.status === "SUCCESS") {
-                    status.innerText = "UPLOADING TO CORE...";
+                    status.innerText = "UPLOADING ASSET...";
                     const uploadFd = new FormData();
                     uploadFd.append('task', data.task);
                     uploadFd.append('file', fileToUpload);
@@ -203,6 +205,7 @@
                         body: uploadFd
                     });
 
+                    // THE MANDATORY FIX: EXECUTING THE TASK
                     status.innerText = "PROCESSING...";
                     const procFd = new FormData();
                     procFd.append('task', data.task);
@@ -214,10 +217,10 @@
                         body: procFd
                     });
 
-                    // Hold for a moment to ensure server sync
+                    // Safety delay for server-side file sync
                     await new Promise(r => setTimeout(r, 2000));
 
-                    status.innerText = "DOWNLOADING...";
+                    status.innerText = "FINISHING DOWNLOAD...";
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
                     
                     setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
