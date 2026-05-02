@@ -182,13 +182,12 @@
             status.innerText = "ENGAGING ENGINE...";
 
             try {
-                // FIXED: Must select the actual file binary selectedFileList[0]
+                // FIXED: Selecting index 0 correctly
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
                 const fd = new FormData();
                 fd.append('tool', currentTool);
-                fd.append('file', fileToUpload);
-
+                // We send a small payload to the backend just to get the token/server
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
                 const data = await res.json();
 
@@ -215,8 +214,8 @@
                         body: procFd
                     });
 
-                    // Small delay to ensure the server finishes building the PDF
-                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    // Hold for a moment to ensure server sync
+                    await new Promise(r => setTimeout(r, 2000));
 
                     status.innerText = "DOWNLOADING...";
                     window.location.href = `https://${data.server}/v1/download/${data.task}`;
