@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
         if (err || !fields.tool) return res.status(500).json({ error: "Data missing" });
 
         try {
-            // Pick the tool name out of the array
-            const tool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
+            const tool = rawTool.toLowerCase().trim().replace(/\s+/g, '');
 
             // 2. AUTHENTICATION
             const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
