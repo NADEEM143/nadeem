@@ -58,36 +58,17 @@
 </head>
 <body>
     <nav>
-        <div class="logo-wrap" onclick="location.reload()">
-            <div class="logo-icon">N</div>
-            <div class="logo-text">NADIM<span>PDF</span></div>
-        </div>
+        <div class="logo-wrap" onclick="location.reload()"><div class="logo-icon">N</div><div class="logo-text">NADIM<span>PDF</span></div></div>
         <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px; color: var(--brand-accent); text-transform: uppercase;">PRO EDITION</div>
     </nav>
 
     <div class="hero"><h1>Intelligent Document <br>Engineering.</h1></div>
 
     <div class="tool-grid">
-        <div class="card" onclick="runTool('imagepdf')">
-            <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
-            <h3>Image Consolidation</h3>
-            <p>Combine assets into a high-fidelity output.</p>
-        </div>
-        <div class="card" onclick="runTool('officepdf')">
-            <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
-            <h3>Word to PDF</h3>
-            <p>Enterprise conversion from DOCX to PDF.</p>
-        </div>
-        <div class="card" onclick="runTool('pdfword')">
-            <div style="color: #3b82f6; font-weight: 800; font-size: 10px; margin-bottom: 20px;">FLOW</div>
-            <h3>PDF to Word</h3>
-            <p>Refactor PDF architecture into editable Word.</p>
-        </div>
-        <div class="card" onclick="runTool('compress')">
-            <div style="color: #f43f5e; font-weight: 800; font-size: 10px; margin-bottom: 20px;">PACK</div>
-            <h3>Neural Compression</h3>
-            <p>Minimize footprint via reconstruction.</p>
-        </div>
+        <div class="card" onclick="runTool('imagepdf')"><h3>Image Consolidation</h3></div>
+        <div class="card" onclick="runTool('officepdf')"><h3>Word to PDF</h3></div>
+        <div class="card" onclick="runTool('pdfword')"><h3>PDF to Word</h3></div>
+        <div class="card" onclick="runTool('compress')"><h3>Neural Compression</h3></div>
     </div>
 
     <footer class="contact-footer">
@@ -109,7 +90,7 @@
             <div class="config-section">
                 <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">READY</p></div>
             </div>
-            <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
+            <button class="cta-btn" id="finalAction">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
     </div>
@@ -122,23 +103,12 @@
         const picker = document.getElementById('filePicker'), status = document.getElementById('status'), 
               overlay = document.getElementById('overlay'), reviewContainer = document.getElementById('reviewContainer'), 
               canvas = document.getElementById('mergeCanvas'), ctx = canvas.getContext('2d'),
-              actionBtn = document.getElementById('finalDownload');
+              actionBtn = document.getElementById('finalAction');
               
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReady = false, task = null;
 
-        function runTool(tool) { 
-            currentTool = tool; picker.value = ""; 
-            if (tool === 'officepdf') picker.accept = ".doc,.docx";
-            else if (tool === 'imagepdf') picker.accept = "image/*";
-            else picker.accept = ".pdf";
-            picker.click(); 
-        }
-
-        function closeModal() { 
-            overlay.style.display = 'none'; status.style.display = 'none'; isReady = false; 
-            actionBtn.innerText = "Commit & Execute Engine"; actionBtn.disabled = false;
-            actionBtn.style.background = "#fff"; actionBtn.style.color = "var(--midnight)";
-        }
+        function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
+        function closeModal() { overlay.style.display = 'none'; status.style.display = 'none'; isReady = false; actionBtn.innerText = "Commit & Execute Engine"; actionBtn.style.background = "#fff"; actionBtn.style.color = "#020617"; actionBtn.disabled = false; }
 
         picker.onchange = async function() {
             if (this.files.length > 0) {
@@ -158,37 +128,36 @@
         }
 
         actionBtn.onclick = async function() {
-            if (isReady && task) {
-                window.location.href = `https://${task.server}/v1/download/${task.task}`;
-                setTimeout(closeModal, 2000); return;
-            }
+            if (isReady && task) { window.location.href = `https://${task.server}/v1/download/${task.task}`; setTimeout(closeModal, 2000); return; }
             if (selectedFileList.length === 0 && !processedBlob) return;
 
             status.style.display = 'block'; status.innerText = "ENGAGING ENGINE...";
             actionBtn.disabled = true;
 
             try {
-                const file = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-                const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
+                // FIXED: Direct Binary Selection with [0]
+                const fileToUse = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
                 
+                const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
                 task = await res.json();
 
                 if (task.status === "SUCCESS") {
                     status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData(); uploadFd.append('task', task.task); uploadFd.append('file', file);
+                    const uploadFd = new FormData(); uploadFd.append('task', task.task); uploadFd.append('file', fileToUse);
                     await fetch(`https://${task.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${task.token}` }, body: uploadFd });
 
-                    status.innerText = "PROCESSING...";
-                    const procFd = new FormData(); procFd.append('task', task.task); procFd.append('tool', currentTool);
+                    status.innerText = "CONVERTING...";
+                    const procFd = new FormData(); procFd.append('task', task.task);
+                    procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
                     const procRes = await fetch(`https://${task.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${task.token}` }, body: procFd });
 
                     if (procRes.ok) {
                         status.innerText = "COMPLETE"; isReady = true; actionBtn.disabled = false;
-                        actionBtn.innerText = "DOWNLOAD NOW"; actionBtn.style.background = "var(--brand-accent)"; actionBtn.style.color = "#fff";
-                    } else { throw new Error(); }
+                        actionBtn.innerText = "DOWNLOAD PROCESSED FILE"; actionBtn.style.background = "#6366f1"; actionBtn.style.color = "#fff";
+                    }
                 }
-            } catch (err) { status.innerText = "ENGINE ERROR: RETRY"; actionBtn.disabled = false; }
+            } catch (err) { status.innerText = "ERROR: RETRY"; actionBtn.disabled = false; }
         };
     </script>
 </body>
