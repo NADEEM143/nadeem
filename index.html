@@ -51,7 +51,6 @@
 
         .cta-btn { background: #fff; color: var(--midnight); width: 100%; padding: 22px; border: none; border-radius: 18px; font-weight: 900; cursor: pointer; margin-top: 25px; transition: 0.3s; font-size: 16px; }
         .cta-btn:hover { background: var(--brand-accent); color: white; }
-        .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--brand-accent); color: #fff; padding: 18px 40px; border-radius: 100px; display: none; font-weight: 800; z-index: 300; }
     </style>
@@ -101,7 +100,7 @@
 
     <div id="overlay">
         <div class="modal-box">
-            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px; text-align: center;">Configuration</h2>
+            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
@@ -110,9 +109,12 @@
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">READY</p></div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
             </div>
+            
+            <!-- BUTTON THAT TRANSFORMS -->
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
+            
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
     </div>
@@ -130,7 +132,7 @@
               ctx = canvas.getContext('2d'),
               actionBtn = document.getElementById('finalDownload');
               
-        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, currentTaskData = null;
+        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, taskData = null;
 
         function runTool(tool) { 
             currentTool = tool; picker.value = ""; 
@@ -142,6 +144,8 @@
 
         function closeModal() { 
             overlay.style.display = 'none'; 
+            picker.value = ""; 
+            processedBlob = null; 
             status.style.display = 'none'; 
             isReadyForDownload = false;
             actionBtn.innerText = "Commit & Execute Engine";
@@ -150,28 +154,52 @@
             actionBtn.disabled = false;
         }
 
+        async function setMergeAxis(axis) { 
+            mergeAxis = axis; 
+            if (currentTool === 'imagepdf') await generateMergePreview(); 
+        }
+
         picker.onchange = async function() {
-            if (this.files.length > 0) {
-                selectedFileList = this.files;
+            selectedFileList = this.files;
+            if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
-                document.getElementById('fileName').innerText = selectedFileList[0].name;
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') await generateMergePreview();
+                if (currentTool === 'imagepdf') {
+                    selectedFileList = Array.from(this.files).slice(0, 100);
+                    await generateMergePreview();
+                } else {
+                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY FOR PROCESSING</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                }
             }
         };
 
         async function generateMergePreview() {
             const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
-            canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
-            let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
+            if (mergeAxis === 'horizontal') {
+                canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
+                let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
+            } else {
+                canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
+                let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
+            }
             canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
         }
 
         actionBtn.onclick = async function() {
-            if (isReadyForDownload && currentTaskData) {
-                window.location.href = `https://${currentTaskData.server}/v1/download/${currentTaskData.task}`;
+            // STEP 2: DOWNLOAD LOGIC (IF READY)
+            if (isReadyForDownload && taskData) {
+                window.location.href = `https://${taskData.server}/v1/download/${taskData.task}`;
                 setTimeout(closeModal, 2000);
                 return;
+            }
+
+            if (selectedFileList.length === 0 && !processedBlob) return;
+            
+            // Local Image Merge Case
+            if (currentTool === 'imagepdf' && processedBlob) {
+                const link = document.createElement('a'); 
+                link.href = URL.createObjectURL(processedBlob);
+                link.download = "NADIM_CONSOLIDATED.jpg"; link.click(); closeModal(); return;
             }
 
             status.style.display = 'block'; 
@@ -179,35 +207,42 @@
             actionBtn.disabled = true;
 
             try {
-                // FIXED: Selecting index 0 binary correctly
+                // FIXED: binary selection
                 const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
+                const fd = new FormData();
+                fd.append('tool', currentTool);
+                
+                // 1. Handshake with Vercel (Passing TOOL only)
                 const handshakeFd = new FormData();
                 handshakeFd.append('tool', currentTool);
-
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
-                currentTaskData = await res.json();
+                taskData = await res.json();
 
-                if (currentTaskData.status === "SUCCESS") {
+                if (taskData.status === "SUCCESS") {
                     status.innerText = "UPLOADING ASSET...";
+                    
+                    // 2. Direct Upload to iLovePDF
                     const uploadFd = new FormData();
-                    uploadFd.append('task', currentTaskData.task);
+                    uploadFd.append('task', taskData.task);
                     uploadFd.append('file', fileToUpload);
 
-                    await fetch(`https://${currentTaskData.server}/v1/upload`, {
+                    await fetch(`https://${taskData.server}/v1/upload`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
                         body: uploadFd
                     });
 
-                    status.innerText = "CONVERTING DOCUMENT...";
+                    status.innerText = "CONVERTING...";
+
+                    // 3. EXECUTING PROCESS
                     const procFd = new FormData();
-                    procFd.append('task', currentTaskData.task);
+                    procFd.append('task', taskData.task);
                     procFd.append('tool', currentTool);
                     
-                    const procRes = await fetch(`https://${currentTaskData.server}/v1/process`, {
+                    const procRes = await fetch(`https://${taskData.server}/v1/process`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
                         body: procFd
                     });
 
@@ -218,7 +253,11 @@
                         actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
                         actionBtn.style.background = "var(--brand-accent)";
                         actionBtn.style.color = "#fff";
-                    } else { throw new Error("Conversion Failed"); }
+                    } else {
+                        throw new Error("Execution Failed");
+                    }
+                } else {
+                    throw new Error(taskData.details || "Handshake Failed");
                 }
             } catch (err) {
                 console.error(err);
