@@ -159,61 +159,70 @@
         }
 
         document.getElementById('finalDownload').onclick = async function() {
-            if (selectedFileList.length === 0 && !processedBlob) return;
+    if (selectedFileList.length === 0 && !processedBlob) return;
+    
+    status.style.display = 'block'; 
+    status.innerText = "ENGAGING ENGINE...";
+
+    try {
+        const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
+        const fd = new FormData();
+        fd.append('tool', currentTool);
+        
+        const res = await fetch('/api/process', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (data.status === "SUCCESS") {
+            status.innerText = "UPLOADING...";
+            const uploadFd = new FormData();
+            uploadFd.append('task', data.task);
+            uploadFd.append('file', fileToUpload);
+
+            await fetch(`https://${data.server}/v1/upload`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${data.token}` },
+                body: uploadFd
+            });
+
+            status.innerText = "CONVERTING...";
+            const procFd = new FormData();
+            procFd.append('task', data.task);
+            procFd.append('tool', data.mappedTool);
             
-            if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a'); 
-                link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_CONSOLIDATED.jpg"; link.click(); closeModal(); return;
-            }
+            await fetch(`https://${data.server}/v1/process`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${data.token}` },
+                body: procFd
+            });
 
-            status.style.display = 'block'; 
-            status.innerText = "ENGAGING ENGINE...";
-
-            try {
-                const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-                const fd = new FormData();
-                fd.append('tool', currentTool);
-                fd.append('file', fileToUpload);
-
-                const res = await fetch('/api/process', { method: 'POST', body: fd });
-                const data = await res.json();
-
-                if (data.status === "SUCCESS") {
-                    status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData();
-                    uploadFd.append('task', data.task);
-                    uploadFd.append('file', fileToUpload);
-
-                    await fetch(`https://${data.server}/v1/upload`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
-                        body: uploadFd
-                    });
-
-                    status.innerText = "CONVERTING...";
-                    const procFd = new FormData();
-                    procFd.append('task', data.task);
-                    procFd.append('tool', data.mappedTool);
-                    
-                    await fetch(`https://${data.server}/v1/process`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
-                        body: procFd
-                    });
-
-                    status.innerText = "DOWNLOADING...";
-                    window.location.href = `https://${data.server}/v1/download/${data.task}`;
-                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
+            // --- THE FIX: WAIT FOR SERVER READINESS ---
+            status.innerText = "FINALISING ASSET...";
+            let ready = false;
+            let attempts = 0;
+            
+            while (!ready && attempts < 10) {
+                const check = await fetch(`https://${data.server}/v1/task/${data.task}`, {
+                    headers: { 'Authorization': `Bearer ${data.token}` }
+                });
+                const taskStatus = await check.json();
+                
+                if (taskStatus.status === 'TaskSuccess') {
+                    ready = true;
                 } else {
-                    throw new Error(data.details || "Handshake Failed");
+                    await new Promise(r => setTimeout(r, 1500)); // Wait 1.5s between checks
+                    attempts++;
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerText = "ENGINE ERROR: RETRY";
-                setTimeout(() => status.style.display = 'none', 3000);
             }
-        };
+
+            status.innerText = "DOWNLOADING...";
+            window.location.href = `https://${data.server}/v1/download/${data.task}`;
+            setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
+        }
+    } catch (err) {
+        status.innerText = "ENGINE ERROR: RETRY";
+        setTimeout(() => status.style.display = 'none', 3000);
+    }
+};
     </script>
 </body>
 </html>
