@@ -51,6 +51,7 @@
 
         .cta-btn { background: #fff; color: var(--midnight); width: 100%; padding: 22px; border: none; border-radius: 18px; font-weight: 900; cursor: pointer; margin-top: 25px; transition: 0.3s; font-size: 16px; }
         .cta-btn:hover { background: var(--brand-accent); color: white; }
+        .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--brand-accent); color: #fff; padding: 18px 40px; border-radius: 100px; display: none; font-weight: 800; z-index: 300; }
     </style>
@@ -72,19 +73,16 @@
             <h3>Image Consolidation</h3>
             <p>Combine up to 100 assets into a high-fidelity output.</p>
         </div>
-        <!-- FIXED: Technical ID 'officepdf' prevents StartError -->
         <div class="card" onclick="runTool('officepdf')">
             <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
             <h3>Word to PDF</h3>
             <p>Enterprise conversion from DOCX to PDF.</p>
         </div>
-        <!-- FIXED: Technical ID 'pdfword' prevents StartError -->
         <div class="card" onclick="runTool('pdfword')">
             <div style="color: #3b82f6; font-weight: 800; font-size: 10px; margin-bottom: 20px;">FLOW</div>
             <h3>PDF to Word</h3>
             <p>Refactor PDF architecture into editable Word files.</p>
         </div>
-        <!-- FIXED: Technical ID 'compress' prevents StartError -->
         <div class="card" onclick="runTool('compress')">
             <div style="color: #f43f5e; font-weight: 800; font-size: 10px; margin-bottom: 20px;">PACK</div>
             <h3>Neural Compression</h3>
@@ -103,16 +101,16 @@
 
     <div id="overlay">
         <div class="modal-box">
-            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
+            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px; text-align: center;">Configuration</h2>
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
-                    <button id="btnHor" class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
-                    <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
+                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -129,9 +127,10 @@
               overlay = document.getElementById('overlay'), 
               reviewContainer = document.getElementById('reviewContainer'), 
               canvas = document.getElementById('mergeCanvas'), 
-              ctx = canvas.getContext('2d');
+              ctx = canvas.getContext('2d'),
+              actionBtn = document.getElementById('finalDownload');
               
-        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
+        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, currentTaskData = null;
 
         function runTool(tool) { 
             currentTool = tool; picker.value = ""; 
@@ -141,92 +140,90 @@
             picker.click(); 
         }
 
-        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; }
-
-        async function setMergeAxis(axis) { 
-            mergeAxis = axis; 
-            if (currentTool === 'imagepdf') await generateMergePreview(); 
+        function closeModal() { 
+            overlay.style.display = 'none'; 
+            status.style.display = 'none'; 
+            isReadyForDownload = false;
+            actionBtn.innerText = "Commit & Execute Engine";
+            actionBtn.style.background = "#fff";
+            actionBtn.style.color = "var(--midnight)";
+            actionBtn.disabled = false;
         }
 
         picker.onchange = async function() {
-            selectedFileList = this.files;
-            if (selectedFileList.length > 0) {
+            if (this.files.length > 0) {
+                selectedFileList = this.files;
                 overlay.style.display = 'flex';
+                document.getElementById('fileName').innerText = selectedFileList[0].name;
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') {
-                    selectedFileList = Array.from(this.files).slice(0, 100);
-                    await generateMergePreview();
-                } else {
-                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY FOR PROCESSING</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
-                }
+                if (currentTool === 'imagepdf') await generateMergePreview();
             }
         };
 
         async function generateMergePreview() {
             const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
-            if (mergeAxis === 'horizontal') {
-                canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
-                let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
-            } else {
-                canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
-                let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
-            }
+            canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
+            let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
             canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
         }
 
-        document.getElementById('finalDownload').onclick = async function() {
-            if (selectedFileList.length === 0 && !processedBlob) return;
-            
-            // Local merge logic
-            if (currentTool === 'imagepdf' && processedBlob) {
-                const link = document.createElement('a'); 
-                link.href = URL.createObjectURL(processedBlob);
-                link.download = "NADIM_CONSOLIDATED.jpg"; link.click(); closeModal(); return;
+        actionBtn.onclick = async function() {
+            if (isReadyForDownload && currentTaskData) {
+                window.location.href = `https://${currentTaskData.server}/v1/download/${currentTaskData.task}`;
+                setTimeout(closeModal, 2000);
+                return;
             }
 
             status.style.display = 'block'; 
             status.innerText = "ENGAGING ENGINE...";
+            actionBtn.disabled = true;
 
             try {
-                const fd = new FormData();
-                fd.append('tool', currentTool);
-                
-                if (currentTool === 'imagepdf' && processedBlob) {
-                    fd.append('file', processedBlob, 'merged.jpg');
-                } else {
-                    // Send actual physical file binary
-                    fd.append('file', selectedFileList[0]);
-                }
+                // FIXED: Selecting index 0 binary correctly
+                const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
 
-                // Proxy authorization through Vercel
-                const res = await fetch('/api/process', { method: 'POST', body: fd });
-                const data = await res.json();
+                const handshakeFd = new FormData();
+                handshakeFd.append('tool', currentTool);
 
-                if (data.status === "SUCCESS") {
-                    status.innerText = "UPLOADING TO CORE...";
-                    
-                    // Upload directly to iLovePDF assigned server
+                const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
+                currentTaskData = await res.json();
+
+                if (currentTaskData.status === "SUCCESS") {
+                    status.innerText = "UPLOADING ASSET...";
                     const uploadFd = new FormData();
-                    uploadFd.append('task', data.task);
-                    uploadFd.append('file', selectedFileList[0]);
+                    uploadFd.append('task', currentTaskData.task);
+                    uploadFd.append('file', fileToUpload);
 
-                    await fetch(`https://${data.server}/v1/upload`, {
+                    await fetch(`https://${currentTaskData.server}/v1/upload`, {
                         method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
+                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
                         body: uploadFd
                     });
 
-                    status.innerText = "PROCESSING & DOWNLOADING...";
-                    // Redirect to final download
-                    window.location.href = `https://${data.server}/v1/download/${data.task}`;
+                    status.innerText = "CONVERTING DOCUMENT...";
+                    const procFd = new FormData();
+                    procFd.append('task', currentTaskData.task);
+                    procFd.append('tool', currentTool);
                     
-                    setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
-                } else {
-                    throw new Error(data.details || "Handshake Failed");
+                    const procRes = await fetch(`https://${currentTaskData.server}/v1/process`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${currentTaskData.token}` },
+                        body: procFd
+                    });
+
+                    if (procRes.ok) {
+                        status.innerText = "PROCESS COMPLETE";
+                        isReadyForDownload = true;
+                        actionBtn.disabled = false;
+                        actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
+                        actionBtn.style.background = "var(--brand-accent)";
+                        actionBtn.style.color = "#fff";
+                    } else { throw new Error("Conversion Failed"); }
                 }
             } catch (err) {
                 console.error(err);
                 status.innerText = "ENGINE ERROR: RETRY";
+                actionBtn.disabled = false;
                 setTimeout(() => status.style.display = 'none', 3000);
             }
         };
