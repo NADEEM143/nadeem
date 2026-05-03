@@ -31,14 +31,14 @@ module.exports = async (req, res) => {
             const tool = toolMap[rawTool.toLowerCase().trim()] || rawTool.toLowerCase().trim();
 
             // 3. AUTHENTICATION
-            const auth = await axios.post('https://ilovepdf.com', {
+            const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
                 public_key: process.env.ILOVEPDF_PUBLIC_KEY,
                 secret_key: process.env.ILOVEPDF_SECRET_KEY
             });
             const token = auth.data.token;
 
             // 4. START TASK (Fixed variable name to 'tool')
-            const start = await axios.get(`https://ilovepdf.com{tool}`, {
+            const start = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
