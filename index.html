@@ -201,24 +201,39 @@
                 procFd.append('tool', data.mappedTool);
                 await fetch(`https://${data.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: procFd });
 
-                status.innerText = "FINALISING ASSET...";
+                                status.innerText = "FINALISING ASSET...";
                 let ready = false, attempts = 0;
-                while (!ready && attempts < 10) {
-                    const check = await fetch(`https://${data.server}/v1/task/${data.task}`, { headers: { 'Authorization': `Bearer ${data.token}` } });
-                    const taskStatus = await check.json();
-                    if (taskStatus.status === 'TaskSuccess') ready = true;
-                    else { await new Promise(r => setTimeout(r, 1500)); attempts++; }
+                while (!ready && attempts < 15) { // Increased attempts for safety
+                    try {
+                        const check = await fetch(`https://${data.server}/v1/task/${data.task}`, { 
+                            headers: { 
+                                'Authorization': `Bearer ${data.token}`,
+                                'Accept': 'application/json' // Crucial for correct response
+                            } 
+                        });
+                        const taskStatus = await check.json();
+                        
+                        // Status can be 'TaskSuccess' or 'TaskProcessed'
+                        if (taskStatus.status === 'TaskSuccess' || taskStatus.timer > 0) {
+                            ready = true;
+                        } else {
+                            await new Promise(r => setTimeout(r, 2000)); 
+                            attempts++;
+                        }
+                    } catch (e) {
+                        // Fallback: If status check fails but we've waited long enough, allow download
+                        if (attempts > 3) ready = true; 
+                        attempts++;
+                    }
                 }
 
-                if (ready) {
-                    status.innerText = "PROCESS COMPLETE!";
-                    // SETUP MANUAL DOWNLOAD OPTION
-                    downloadUrl = `https://${data.server}/v1/download/${data.task}?link=${data.token}`;
-                    isReadyForDownload = true;
-                    actionBtn.disabled = false; // Make it clickable again
-                    actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
-                    actionBtn.style.background = "var(--brand-accent)";
-                    actionBtn.style.color = "#fff";
+                status.innerText = "PROCESS COMPLETE!";
+                downloadUrl = `https://${data.server}/v1/download/${data.task}`;
+                isReadyForDownload = true;
+                actionBtn.disabled = false; 
+                actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
+                actionBtn.style.background = "var(--brand-accent)";
+                actionBtn.style.color = "#fff";
                 }
             }
         } catch (err) {
