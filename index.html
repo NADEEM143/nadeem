@@ -41,13 +41,7 @@
         .whatsapp-btn:hover { transform: translateY(-5px); filter: brightness(1.1); }
 
         #overlay { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.9); backdrop-filter: blur(25px); z-index: 200; display: none; align-items: center; justify-content: center; overflow-y: auto; padding: 20px; }
-        .modal-box { background: var(--slate-pro); width: 100%; max-width: 650px; border-radius: 40px; padding: 50px; border: 1px solid var(--glass-border); }
-
-        .config-section { margin-top: 30px; padding-top: 30px; border-top: 1px solid var(--glass-border); }
-        .section-label { font-weight: 800; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--brand-accent); margin-bottom: 20px; display: block; }
-        
-        .review-window { padding: 20px; border-radius: 24px; background: rgba(0,0,0,0.2); border: 1px solid var(--glass-border); min-height: 150px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .review-window img { max-width: 100%; max-height: 250px; border-radius: 12px; object-fit: contain; }
+        .modal-box { background: var(--slate-pro); width: 100%; max-width: 650px; border-radius: 40px; padding: 50px; border: 1px solid var(--glass-border); text-align: center; }
 
         .cta-btn { background: #fff; color: var(--midnight); width: 100%; padding: 22px; border: none; border-radius: 18px; font-weight: 900; cursor: pointer; margin-top: 25px; transition: 0.3s; font-size: 16px; }
         .cta-btn:hover { background: var(--brand-accent); color: white; }
@@ -68,32 +62,16 @@
     <div class="hero"><h1>Intelligent Document <br>Engineering.</h1></div>
 
     <div class="tool-grid">
-        <div class="card" onclick="runTool('imagepdf')">
-            <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
-            <h3>Image Consolidation</h3>
-            <p>Combine up to 100 assets into a high-fidelity output.</p>
-        </div>
-        <div class="card" onclick="runTool('officepdf')">
-            <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
-            <h3>Word to PDF</h3>
-            <p>Enterprise conversion from DOCX to PDF.</p>
-        </div>
-        <div class="card" onclick="runTool('pdfword')">
-            <div style="color: #3b82f6; font-weight: 800; font-size: 10px; margin-bottom: 20px;">FLOW</div>
-            <h3>PDF to Word</h3>
-            <p>Refactor PDF architecture into editable Word files.</p>
-        </div>
-        <div class="card" onclick="runTool('compress')">
-            <div style="color: #f43f5e; font-weight: 800; font-size: 10px; margin-bottom: 20px;">PACK</div>
-            <h3>Neural Compression</h3>
-            <p>Minimize footprint via binary reconstruction.</p>
-        </div>
+        <div class="card" onclick="runTool('imagepdf')"><h3>Image Consolidation</h3></div>
+        <div class="card" onclick="runTool('officepdf')"><h3>Word to PDF</h3></div>
+        <div class="card" onclick="runTool('pdfword')"><h3>PDF to Word</h3></div>
+        <div class="card" onclick="runTool('compress')"><h3>Neural Compression</h3></div>
     </div>
 
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
-            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -101,17 +79,15 @@
 
     <div id="overlay">
         <div class="modal-box">
-            <h2 style="font-weight: 900; font-size: 32px; letter-spacing: -1px; text-align: center;">Configuration</h2>
-            <div id="mergeConfig" class="config-section" style="display:none;">
-                <span class="section-label">Spatial Layout Axis</span>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btnHor" class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
-                    <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
-                </div>
+            <h2 id="modalTitle" style="font-weight: 900; font-size: 32px; letter-spacing: -1px;">Configuration</h2>
+            <div id="mergeConfig" style="display:none; margin-top: 20px;">
+                <button class="cta-btn" onclick="setMergeAxis('horizontal')" style="width:48%; margin-right:2%">Horizontal</button>
+                <button class="cta-btn" onclick="setMergeAxis('vertical')" style="width:48%">Vertical</button>
             </div>
-            <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
+            <div style="margin-top:20px; padding:20px; border-radius:24px; background:rgba(0,0,0,0.2);" id="reviewContainer">
+                <p id="fileName" style="color:var(--text-dim); font-weight:700;">READY</p>
             </div>
+            <!-- TRANSFORMS TO DOWNLOAD AFTER PROCESSING -->
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
@@ -122,37 +98,18 @@
     <div id="status">NADIM ENGINE ACTIVE</div>
 
     <script>
-        const picker = document.getElementById('filePicker'), 
-              status = document.getElementById('status'), 
-              overlay = document.getElementById('overlay'), 
-              reviewContainer = document.getElementById('reviewContainer'), 
-              canvas = document.getElementById('mergeCanvas'), 
-              ctx = canvas.getContext('2d'),
+        const picker = document.getElementById('filePicker'), status = document.getElementById('status'),
+              overlay = document.getElementById('overlay'), reviewContainer = document.getElementById('reviewContainer'),
+              canvas = document.getElementById('mergeCanvas'), ctx = canvas.getContext('2d'),
               actionBtn = document.getElementById('finalDownload');
               
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReady = false, taskData = null;
 
-        function runTool(tool) { 
-            currentTool = tool; picker.value = ""; 
-            if (tool === 'officepdf') picker.accept = ".doc,.docx";
-            else if (tool === 'imagepdf') picker.accept = "image/*";
-            else picker.accept = ".pdf";
-            picker.click(); 
-        }
-
+        function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
         function closeModal() { 
-            overlay.style.display = 'none'; 
-            status.style.display = 'none'; 
-            isReady = false; 
-            actionBtn.innerText = "Commit & Execute Engine";
-            actionBtn.style.background = "#fff";
-            actionBtn.style.color = "var(--midnight)";
-            actionBtn.disabled = false;
-        }
-
-        async function setMergeAxis(axis) { 
-            mergeAxis = axis; 
-            if (currentTool === 'imagepdf') await generateMergePreview(); 
+            overlay.style.display = 'none'; status.style.display = 'none'; isReady = false; 
+            actionBtn.innerText = "Commit & Execute Engine"; actionBtn.disabled = false;
+            actionBtn.style.background = "#fff"; actionBtn.style.color = "#020617";
         }
 
         picker.onchange = async function() {
@@ -175,64 +132,37 @@
         actionBtn.onclick = async function() {
             if (isReady && taskData) {
                 window.location.href = `https://${taskData.server}/v1/download/${taskData.task}`;
-                setTimeout(closeModal, 2000);
-                return;
+                setTimeout(closeModal, 2000); return;
             }
 
-            if (selectedFileList.length === 0 && !processedBlob) return;
-            
-            status.style.display = 'block'; 
-            status.innerText = "ENGAGING ENGINE...";
+            status.style.display = 'block'; status.innerText = "ENGAGING ENGINE...";
             actionBtn.disabled = true;
 
             try {
-                // FIXED: Direct Binary Selection
                 const binary = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-
-                const handshakeFd = new FormData();
-                handshakeFd.append('tool', currentTool);
+                const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
                 
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
                 taskData = await res.json();
 
                 if (taskData.status === "SUCCESS") {
                     status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData();
-                    uploadFd.append('task', taskData.task);
-                    uploadFd.append('file', binary);
-
-                    await fetch(`https://${taskData.server}/v1/upload`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${taskData.token}` },
-                        body: uploadFd
-                    });
+                    const uploadFd = new FormData(); uploadFd.append('task', taskData.task); uploadFd.append('file', binary);
+                    await fetch(`https://${taskData.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: uploadFd });
 
                     status.innerText = "CONVERTING...";
-                    const procFd = new FormData();
-                    procFd.append('task', taskData.task);
-                    // Handle technical tool ID mapping for process endpoint
+                    const procFd = new FormData(); procFd.append('task', taskData.task);
+                    // Match the Technical ID used by the backend handshake
                     procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
                     
-                    const procRes = await fetch(`https://${taskData.server}/v1/process`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${taskData.token}` },
-                        body: procFd
-                    });
+                    const procRes = await fetch(`https://${taskData.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: procFd });
 
                     if (procRes.ok) {
-                        status.innerText = "ENGINE READY";
-                        isReady = true;
-                        actionBtn.disabled = false;
-                        actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
-                        actionBtn.style.background = "var(--brand-accent)";
-                        actionBtn.style.color = "#fff";
-                    } else { throw new Error("Processing Failed"); }
+                        status.innerText = "ENGINE READY"; isReady = true; actionBtn.disabled = false;
+                        actionBtn.innerText = "DOWNLOAD PROCESSED FILE"; actionBtn.style.background = "#6366f1"; actionBtn.style.color = "#fff";
+                    } else { throw new Error(); }
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerText = "ENGINE ERROR: RETRY";
-                actionBtn.disabled = false;
-            }
+            } catch (err) { status.innerText = "ENGINE ERROR: RETRY"; actionBtn.disabled = false; }
         };
     </script>
 </body>
