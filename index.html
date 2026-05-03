@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NADIM PDF | Elite Document Intelligence</title>
     <style>
-        /* --- ELITE PREMIUM DESIGN SYSTEM (RESTORED) --- */
+        /* --- ELITE PREMIUM DESIGN SYSTEM --- */
         :root {
             --brand-accent: #6366f1;
             --midnight: #020617;
@@ -112,7 +112,6 @@
             <div class="config-section">
                 <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
             </div>
-            
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
@@ -134,11 +133,15 @@
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, taskData = null;
 
         function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
-        
+
         function closeModal() { 
-            overlay.style.display = 'none'; status.style.display = 'none'; isReadyForDownload = false;
-            actionBtn.innerText = "Commit & Execute Engine"; actionBtn.disabled = false;
-            actionBtn.style.background = "#fff"; actionBtn.style.color = "var(--midnight)";
+            overlay.style.display = 'none'; 
+            status.style.display = 'none'; 
+            isReadyForDownload = false;
+            actionBtn.innerText = "Commit & Execute Engine";
+            actionBtn.style.background = "#fff";
+            actionBtn.style.color = "var(--midnight)";
+            actionBtn.disabled = false;
         }
 
         async function setMergeAxis(axis) { 
@@ -164,7 +167,7 @@
         }
 
         actionBtn.onclick = async function() {
-            // THE DOWNLOAD OPTION LOGIC
+            // THE OPTIONAL DOWNLOAD BUTTON
             if (isReadyForDownload && taskData) {
                 window.location.href = `https://${taskData.server}/v1/download/${taskData.task}`;
                 setTimeout(closeModal, 2000);
@@ -172,28 +175,44 @@
             }
 
             if (selectedFileList.length === 0 && !processedBlob) return;
-            status.style.display = 'block'; status.innerText = "ENGAGING ENGINE...";
+            
+            status.style.display = 'block'; 
+            status.innerText = "ENGAGING ENGINE...";
             actionBtn.disabled = true;
 
             try {
-                // FIXED: Direct Binary Indexing
+                // FIXED: Selecting binary index 0 correctly
                 const binary = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-                const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
+
+                const handshakeFd = new FormData();
+                handshakeFd.append('tool', currentTool);
                 
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
                 taskData = await res.json();
 
                 if (taskData.status === "SUCCESS") {
-                    status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData(); uploadFd.append('task', taskData.task); uploadFd.append('file', binary);
-                    await fetch(`https://${taskData.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: uploadFd });
+                    status.innerText = "UPLOADING ASSET...";
+                    const uploadFd = new FormData();
+                    uploadFd.append('task', taskData.task);
+                    uploadFd.append('file', binary);
 
-                    status.innerText = "CONVERTING...";
-                    const procFd = new FormData(); procFd.append('task', taskData.task);
-                    // Match technical ID: if pdfword was picked, the engine started a pdfocr task.
+                    await fetch(`https://${taskData.server}/v1/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
+                        body: uploadFd
+                    });
+
+                    status.innerText = "EXECUTING ENGINE...";
+                    const procFd = new FormData();
+                    procFd.append('task', taskData.task);
+                    // Match technical ID mapping for process
                     procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
                     
-                    const procRes = await fetch(`https://${taskData.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: procFd });
+                    const procRes = await fetch(`https://${taskData.server}/v1/process`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
+                        body: procFd
+                    });
 
                     if (procRes.ok) {
                         status.innerText = "PROCESS COMPLETE";
@@ -204,7 +223,11 @@
                         actionBtn.style.color = "#fff";
                     } else { throw new Error(); }
                 }
-            } catch (err) { status.innerText = "ENGINE ERROR: RETRY"; actionBtn.disabled = false; }
+            } catch (err) {
+                console.error(err);
+                status.innerText = "ENGINE ERROR: RETRY";
+                actionBtn.disabled = false;
+            }
         };
     </script>
 </body>
