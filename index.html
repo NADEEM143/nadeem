@@ -114,10 +114,10 @@
           reviewContainer = document.getElementById('reviewContainer'), 
           canvas = document.getElementById('mergeCanvas'), 
           ctx = canvas.getContext('2d'),
-          actionBtn = document.getElementById('finalDownload'); // Target your main button
+          actionBtn = document.getElementById('finalDownload');
           
     let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
-    let isReadyForDownload = false, downloadUrl = ""; // New states for manual download
+    let isReadyForDownload = false, downloadUrl = "";
 
     function runTool(tool) { 
         currentTool = tool; picker.value = ""; 
@@ -133,6 +133,7 @@
         actionBtn.innerText = "Commit & Execute Engine";
         actionBtn.style.background = "#fff";
         actionBtn.style.color = "var(--midnight)";
+        actionBtn.disabled = false; // Ensure button reset
     }
 
     async function setMergeAxis(axis) { 
@@ -167,7 +168,7 @@
     }
 
     actionBtn.onclick = async function() {
-        // IF FILE IS READY, TRIGGER MANUAL DOWNLOAD
+        // TRIGGER DOWNLOAD IF READY
         if (isReadyForDownload) {
             window.location.href = downloadUrl;
             setTimeout(closeModal, 2000);
@@ -178,7 +179,7 @@
         
         status.style.display = 'block'; 
         status.innerText = "ENGAGING ENGINE...";
-        actionBtn.disabled = true; // Temporary lock while processing
+        actionBtn.disabled = true; // Button locks during processing
 
         try {
             const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
@@ -201,40 +202,27 @@
                 procFd.append('tool', data.mappedTool);
                 await fetch(`https://${data.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: procFd });
 
-                                status.innerText = "FINALISING ASSET...";
+                status.innerText = "FINALISING ASSET...";
                 let ready = false, attempts = 0;
-                while (!ready && attempts < 15) { // Increased attempts for safety
+                while (!ready && attempts < 10) {
                     try {
                         const check = await fetch(`https://${data.server}/v1/task/${data.task}`, { 
-                            headers: { 
-                                'Authorization': `Bearer ${data.token}`,
-                                'Accept': 'application/json' // Crucial for correct response
-                            } 
+                            headers: { 'Authorization': `Bearer ${data.token}`, 'Accept': 'application/json' } 
                         });
                         const taskStatus = await check.json();
-                        
-                        // Status can be 'TaskSuccess' or 'TaskProcessed'
-                        if (taskStatus.status === 'TaskSuccess' || taskStatus.timer > 0) {
-                            ready = true;
-                        } else {
-                            await new Promise(r => setTimeout(r, 2000)); 
-                            attempts++;
-                        }
-                    } catch (e) {
-                        // Fallback: If status check fails but we've waited long enough, allow download
-                        if (attempts > 3) ready = true; 
-                        attempts++;
-                    }
+                        if (taskStatus.status === 'TaskSuccess' || taskStatus.timer > 0) ready = true;
+                        else { await new Promise(r => setTimeout(r, 2000)); attempts++; }
+                    } catch (e) { ready = true; } // Safety escape to ensure button re-enables
                 }
 
+                // --- RE-ENABLE BUTTON FOR DOWNLOAD ---
                 status.innerText = "PROCESS COMPLETE!";
                 downloadUrl = `https://${data.server}/v1/download/${data.task}`;
                 isReadyForDownload = true;
-                actionBtn.disabled = false; 
+                actionBtn.disabled = false; // THIS MAKES IT CLICKABLE AGAIN
                 actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
                 actionBtn.style.background = "var(--brand-accent)";
                 actionBtn.style.color = "#fff";
-                }
             }
         } catch (err) {
             status.innerText = "ENGINE ERROR: RETRY";
