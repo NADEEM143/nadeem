@@ -200,27 +200,30 @@
                     });
 
                     status.innerText = "CONVERTING...";
-                    const procFd = new FormData();
-                    procFd.append('task', data.task);
-                    // MANDATORY 400 FIX: Synchronize Technical Tool ID
-                    procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
-                    
-                    const procRes = await fetch(`https://${data.server}/v1/process`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${data.token}` },
-                        body: procFd
-                    });
+const procFd = new FormData();
+procFd.append('task', data.task);
 
-                    if (procRes.ok) {
-                        status.innerText = "DOWNLOADING...";
-                        window.location.href = `https://${data.server}/v1/download/${data.task}`;
-                        setTimeout(() => closeModal(), 3000);
-                    } else { throw new Error(); }
-                }
-            } catch (err) {
-                status.innerText = "ENGINE ERROR: RETRY";
-                setTimeout(() => status.style.display = 'none', 3000);
-            }
+// CORRECTED LINE:
+procFd.append('tool', data.mappedTool); 
+                    
+const procRes = await fetch(`https://${data.server}/v1/process`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${data.token}` },
+    body: procFd
+});
+
+
+                    // ... your procRes fetch code above ...
+
+if (procRes.ok) {
+    status.innerText = "DOWNLOAD READY...";
+    // This line actually saves the file to your computer
+    window.location.href = `https://${data.server}/v1/download/${data.task}`;
+    setTimeout(closeModal, 3000);
+} else {
+    throw new Error("Conversion failed on server");
+}
+
         };
     </script>
 </body>
