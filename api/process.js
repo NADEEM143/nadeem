@@ -47,7 +47,8 @@ module.exports = async (req, res) => {
                 status: "SUCCESS",
                 token: token,
                 server: start.data.server,
-                task: start.data.task
+                task: start.data.task,
+                mappedTool: tool
             });
 
         } catch (e) {
