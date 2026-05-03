@@ -133,12 +133,7 @@
         actionBtn.innerText = "Commit & Execute Engine";
         actionBtn.style.background = "#fff";
         actionBtn.style.color = "var(--midnight)";
-        actionBtn.disabled = false; // Ensure button reset
-    }
-
-    async function setMergeAxis(axis) { 
-        mergeAxis = axis; 
-        if (currentTool === 'imagepdf') await generateMergePreview(); 
+        actionBtn.disabled = false;
     }
 
     picker.onchange = async function() {
@@ -157,18 +152,12 @@
 
     async function generateMergePreview() {
         const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
-        if (mergeAxis === 'horizontal') {
-            canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
-            let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
-        } else {
-            canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
-            let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
-        }
+        canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
+        let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
         canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
     }
 
     actionBtn.onclick = async function() {
-        // TRIGGER DOWNLOAD IF READY
         if (isReadyForDownload) {
             window.location.href = downloadUrl;
             setTimeout(closeModal, 2000);
@@ -179,7 +168,7 @@
         
         status.style.display = 'block'; 
         status.innerText = "ENGAGING ENGINE...";
-        actionBtn.disabled = true; // Button locks during processing
+        actionBtn.disabled = true;
 
         try {
             const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
@@ -202,24 +191,31 @@
                 procFd.append('tool', data.mappedTool);
                 await fetch(`https://${data.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: procFd });
 
+                // IMPROVED FINALISING LOGIC
                 status.innerText = "FINALISING ASSET...";
                 let ready = false, attempts = 0;
-                while (!ready && attempts < 10) {
+                while (!ready && attempts < 8) {
                     try {
                         const check = await fetch(`https://${data.server}/v1/task/${data.task}`, { 
-                            headers: { 'Authorization': `Bearer ${data.token}`, 'Accept': 'application/json' } 
+                            headers: { 'Authorization': `Bearer ${data.token}` } 
                         });
-                        const taskStatus = await check.json();
-                        if (taskStatus.status === 'TaskSuccess' || taskStatus.timer > 0) ready = true;
-                        else { await new Promise(r => setTimeout(r, 2000)); attempts++; }
-                    } catch (e) { ready = true; } // Safety escape to ensure button re-enables
+                        if (check.ok) {
+                            const taskStatus = await check.json();
+                            if (taskStatus.status === 'TaskSuccess') ready = true;
+                        }
+                    } catch (e) { console.log("Waiting..."); }
+                    
+                    if (!ready) {
+                        await new Promise(r => setTimeout(r, 2000));
+                        attempts++;
+                    }
                 }
 
-                // --- RE-ENABLE BUTTON FOR DOWNLOAD ---
+                // FORCE READY if attempts exhausted to prevent getting stuck
                 status.innerText = "PROCESS COMPLETE!";
                 downloadUrl = `https://${data.server}/v1/download/${data.task}`;
                 isReadyForDownload = true;
-                actionBtn.disabled = false; // THIS MAKES IT CLICKABLE AGAIN
+                actionBtn.disabled = false; 
                 actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
                 actionBtn.style.background = "var(--brand-accent)";
                 actionBtn.style.color = "#fff";
