@@ -92,7 +92,7 @@
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
-            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist.</p>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -109,7 +109,7 @@
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"></div>
+                <div class="review-window" id="reviewContainer"><p style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -126,12 +126,10 @@
               overlay = document.getElementById('overlay'), 
               reviewContainer = document.getElementById('reviewContainer'), 
               canvas = document.getElementById('mergeCanvas'), 
-              ctx = canvas.getContext('2d'),
-              finalBtn = document.getElementById('finalDownload');
+              ctx = canvas.getContext('2d');
               
-        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReady = false, lastData = null;
+        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null;
 
-        /* RESTORED EXACT ORIGINAL runTool LOGIC */
         function runTool(tool) { 
             currentTool = tool; picker.value = ""; 
             if (tool === 'officepdf') picker.accept = ".doc,.docx";
@@ -140,18 +138,13 @@
             picker.click(); 
         }
 
-        function closeModal() { 
-            overlay.style.display = 'none'; picker.value = ""; processedBlob = null; status.style.display = 'none'; 
-            isReady = false; finalBtn.innerText = "Commit & Execute Engine";
-            finalBtn.style.background = "#fff"; finalBtn.style.color = "#020617";
-        }
+        function closeModal() { overlay.style.display = 'none'; picker.value = ""; processedBlob = null; status.style.display = 'none'; }
 
         async function setMergeAxis(axis) { 
             mergeAxis = axis; 
             if (currentTool === 'imagepdf') await generateMergePreview(); 
         }
 
-        /* RESTORED EXACT ORIGINAL picker.onchange LOGIC */
         picker.onchange = async function() {
             selectedFileList = this.files;
             if (selectedFileList.length > 0) {
@@ -166,7 +159,6 @@
             }
         };
 
-        /* RESTORED EXACT ORIGINAL generateMergePreview LOGIC */
         async function generateMergePreview() {
             const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
             if (mergeAxis === 'horizontal') {
@@ -179,44 +171,56 @@
             canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
         }
 
-        finalBtn.onclick = async function() {
-            // STEP 2: DOWNLOAD OPTION
-            if (isReady && lastData) {
-                window.location.href = `https://${lastData.server}/v1/download/${lastData.task}`;
-                setTimeout(closeModal, 2000); return;
-            }
-
+        document.getElementById('finalDownload').onclick = async function() {
             if (selectedFileList.length === 0 && !processedBlob) return;
-            status.style.display = 'block'; status.innerText = "ENGAGING ENGINE...";
-            finalBtn.disabled = true;
+            
+            status.style.display = 'block'; 
+            status.innerText = "ENGAGING ENGINE...";
 
             try {
-                // FIXED Binary reference
-                const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-                const fd = new FormData(); fd.append('tool', currentTool);
+                // FIXED Binary Selection
+                const binary = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
+                const fd = new FormData();
+                fd.append('tool', currentTool);
                 
                 // Handshake
                 const res = await fetch('/api/process', { method: 'POST', body: fd });
-                lastData = await res.json();
+                const data = await res.json();
 
-                if (lastData.status === "SUCCESS") {
+                if (data.status === "SUCCESS") {
                     status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData(); uploadFd.append('task', lastData.task); uploadFd.append('file', fileToUpload);
-                    await fetch(`https://${lastData.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${lastData.token}` }, body: uploadFd });
+                    const uploadFd = new FormData();
+                    uploadFd.append('task', data.task);
+                    uploadFd.append('file', binary);
+
+                    await fetch(`https://${data.server}/v1/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${data.token}` },
+                        body: uploadFd
+                    });
 
                     status.innerText = "CONVERTING...";
-                    const procFd = new FormData(); procFd.append('task', lastData.task);
+                    const procFd = new FormData();
+                    procFd.append('task', data.task);
+                    // MANDATORY 400 FIX: Synchronize Technical Tool ID
                     procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
-                    const procRes = await fetch(`https://${lastData.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${lastData.token}` }, body: procFd });
+                    
+                    const procRes = await fetch(`https://${data.server}/v1/process`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${data.token}` },
+                        body: procFd
+                    });
 
                     if (procRes.ok) {
-                        status.innerText = "PROCESS COMPLETE";
-                        isReady = true; finalBtn.disabled = false;
-                        finalBtn.innerText = "DOWNLOAD PROCESSED FILE";
-                        finalBtn.style.background = "var(--brand-accent)"; finalBtn.style.color = "#fff";
-                    }
+                        status.innerText = "DOWNLOADING...";
+                        window.location.href = `https://${data.server}/v1/download/${data.task}`;
+                        setTimeout(() => closeModal(), 3000);
+                    } else { throw new Error(); }
                 }
-            } catch (err) { status.innerText = "ERROR: RETRY"; finalBtn.disabled = false; }
+            } catch (err) {
+                status.innerText = "ENGINE ERROR: RETRY";
+                setTimeout(() => status.style.display = 'none', 3000);
+            }
         };
     </script>
 </body>
