@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NADIM PDF | Elite Document Intelligence</title>
     <style>
-        /* --- ELITE PREMIUM DESIGN SYSTEM (RESTORED) --- */
+        /* --- ELITE PREMIUM DESIGN SYSTEM --- */
         :root {
             --brand-accent: #6366f1;
             --midnight: #020617;
@@ -93,7 +93,7 @@
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
-            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -105,14 +105,15 @@
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
-                    <button id="btnHor" class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
-                    <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
+                <div class="review-window" id="reviewContainer">
+                    <p style="color: var(--text-dim); font-weight: 700;">READY</p>
+                </div>
             </div>
-            
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
         </div>
@@ -133,12 +134,20 @@
               
         let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, taskData = null;
 
-        function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
-        
+        /* --- RESTORED ORIGINAL FILE SELECTION LOGIC --- */
+        function runTool(tool) { 
+            currentTool = tool; picker.value = ""; 
+            if (tool === 'officepdf') picker.accept = ".doc,.docx";
+            else if (tool === 'imagepdf') picker.accept = "image/*";
+            else picker.accept = ".pdf";
+            picker.click(); 
+        }
+
         function closeModal() { 
-            overlay.style.display = 'none'; status.style.display = 'none'; isReadyForDownload = false;
-            actionBtn.innerText = "Commit & Execute Engine"; actionBtn.disabled = false;
+            overlay.style.display = 'none'; status.style.display = 'none'; 
+            isReadyForDownload = false; actionBtn.innerText = "Commit & Execute Engine";
             actionBtn.style.background = "#fff"; actionBtn.style.color = "var(--midnight)";
+            actionBtn.disabled = false;
         }
 
         async function setMergeAxis(axis) { 
@@ -147,12 +156,16 @@
         }
 
         picker.onchange = async function() {
-            if (this.files.length > 0) {
-                selectedFileList = this.files;
+            selectedFileList = this.files;
+            if (selectedFileList.length > 0) {
                 overlay.style.display = 'flex';
-                document.getElementById('fileName').innerText = selectedFileList[0].name;
                 document.getElementById('mergeConfig').style.display = currentTool === 'imagepdf' ? 'block' : 'none';
-                if (currentTool === 'imagepdf') await generateMergePreview();
+                if (currentTool === 'imagepdf') {
+                    selectedFileList = Array.from(this.files).slice(0, 100);
+                    await generateMergePreview();
+                } else {
+                    reviewContainer.innerHTML = `<div style="text-align:center"><p style="color:var(--brand-accent);font-weight:800;font-size:14px">READY FOR PROCESSING</p><p style="color:var(--text-dim);font-size:12px;margin-top:5px">${selectedFileList[0].name}</p></div>`;
+                }
             }
         };
 
@@ -164,7 +177,7 @@
         }
 
         actionBtn.onclick = async function() {
-            // THE DOWNLOAD OPTION LOGIC
+            // Logic for the final download choice
             if (isReadyForDownload && taskData) {
                 window.location.href = `https://${taskData.server}/v1/download/${taskData.task}`;
                 setTimeout(closeModal, 2000);
@@ -176,24 +189,35 @@
             actionBtn.disabled = true;
 
             try {
-                // FIXED: Direct Binary Indexing
-                const binary = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
+                // FIXED Binary reference
+                const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
                 const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
                 
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
                 taskData = await res.json();
 
                 if (taskData.status === "SUCCESS") {
-                    status.innerText = "UPLOADING...";
-                    const uploadFd = new FormData(); uploadFd.append('task', taskData.task); uploadFd.append('file', binary);
-                    await fetch(`https://${taskData.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: uploadFd });
+                    status.innerText = "UPLOADING ASSET...";
+                    const uploadFd = new FormData();
+                    uploadFd.append('task', taskData.task);
+                    uploadFd.append('file', fileToUpload);
+
+                    await fetch(`https://${taskData.server}/v1/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
+                        body: uploadFd
+                    });
 
                     status.innerText = "CONVERTING...";
-                    const procFd = new FormData(); procFd.append('task', taskData.task);
-                    // Match technical ID: if pdfword was picked, the engine started a pdfocr task.
+                    const procFd = new FormData();
+                    procFd.append('task', taskData.task);
                     procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
                     
-                    const procRes = await fetch(`https://${taskData.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: procFd });
+                    const procRes = await fetch(`https://${taskData.server}/v1/process`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${taskData.token}` },
+                        body: procFd
+                    });
 
                     if (procRes.ok) {
                         status.innerText = "PROCESS COMPLETE";
@@ -204,7 +228,10 @@
                         actionBtn.style.color = "#fff";
                     } else { throw new Error(); }
                 }
-            } catch (err) { status.innerText = "ENGINE ERROR: RETRY"; actionBtn.disabled = false; }
+            } catch (err) {
+                status.innerText = "ENGINE ERROR: RETRY";
+                actionBtn.disabled = false;
+            }
         };
     </script>
 </body>
