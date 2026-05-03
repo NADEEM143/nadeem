@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NADIM PDF | Elite Document Intelligence</title>
     <style>
-        /* --- ELITE PREMIUM DESIGN SYSTEM --- */
+        /* --- YOUR EXACT ORIGINAL CSS --- */
         :root {
             --brand-accent: #6366f1;
             --midnight: #020617;
@@ -51,7 +51,6 @@
 
         .cta-btn { background: #fff; color: var(--midnight); width: 100%; padding: 22px; border: none; border-radius: 18px; font-weight: 900; cursor: pointer; margin-top: 25px; transition: 0.3s; font-size: 16px; }
         .cta-btn:hover { background: var(--brand-accent); color: white; }
-        .cta-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
         #status { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); background: var(--brand-accent); color: #fff; padding: 18px 40px; border-radius: 100px; display: none; font-weight: 800; z-index: 300; }
     </style>
@@ -71,7 +70,7 @@
         <div class="card" onclick="runTool('imagepdf')">
             <div style="color: #10b981; font-weight: 800; font-size: 10px; margin-bottom: 20px;">UNIFY</div>
             <h3>Image Consolidation</h3>
-            <p>Combine up to 100 assets into a high-fidelity output.</p>
+            <p>Combine assets into a high-fidelity output.</p>
         </div>
         <div class="card" onclick="runTool('officepdf')">
             <div style="color: #6366f1; font-weight: 800; font-size: 10px; margin-bottom: 20px;">SOURCE</div>
@@ -93,7 +92,7 @@
     <footer class="contact-footer">
         <div class="contact-wrap">
             <h3 class="contact-title">Need Technical Support?</h3>
-            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist with your document needs.</p>
+            <p style="color: var(--text-dim); margin-bottom: 20px;">Our engineering team is ready to assist.</p>
             <a href="tel:9718439786" class="contact-link">+91 9718439786</a>
             <a href="https://wa.me" target="_blank" class="whatsapp-btn">Chat on WhatsApp</a>
         </div>
@@ -105,12 +104,12 @@
             <div id="mergeConfig" class="config-section" style="display:none;">
                 <span class="section-label">Spatial Layout Axis</span>
                 <div style="display: flex; gap: 10px;">
-                    <button id="btnHor" class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
-                    <button id="btnVer" class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(99, 102, 241, 0.1); color: #fff; border: 1px solid var(--brand-accent);" onclick="setMergeAxis('horizontal')">Horizontal</button>
+                    <button class="cta-btn" style="margin: 0; background: rgba(255,255,255,0.05); color: var(--text-dim);" onclick="setMergeAxis('vertical')">Vertical</button>
                 </div>
             </div>
             <div class="config-section">
-                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">ASSET SECURED & READY</p></div>
+                <div class="review-window" id="reviewContainer"><p id="fileName" style="color: var(--text-dim); font-weight: 700;">READY</p></div>
             </div>
             <button class="cta-btn" id="finalDownload">Commit & Execute Engine</button>
             <p onclick="closeModal()" style="text-align:center; margin-top:20px; cursor:pointer; font-size:12px; color:var(--text-dim); font-weight: 800;">CANCEL SESSION</p>
@@ -130,23 +129,13 @@
               ctx = canvas.getContext('2d'),
               actionBtn = document.getElementById('finalDownload');
               
-        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReadyForDownload = false, taskData = null;
+        let currentTool = "", selectedFileList = [], mergeAxis = "horizontal", processedBlob = null, isReady = false, taskData = null;
 
         function runTool(tool) { currentTool = tool; picker.value = ""; picker.click(); }
-
+        
         function closeModal() { 
-            overlay.style.display = 'none'; 
-            status.style.display = 'none'; 
-            isReadyForDownload = false;
-            actionBtn.innerText = "Commit & Execute Engine";
-            actionBtn.style.background = "#fff";
-            actionBtn.style.color = "var(--midnight)";
-            actionBtn.disabled = false;
-        }
-
-        async function setMergeAxis(axis) { 
-            mergeAxis = axis; 
-            if (currentTool === 'imagepdf') await generateMergePreview(); 
+            overlay.style.display = 'none'; status.style.display = 'none'; isReady = false; 
+            actionBtn.innerText = "Commit & Execute Engine"; actionBtn.style.background = "#fff"; actionBtn.style.color = "var(--midnight)";
         }
 
         picker.onchange = async function() {
@@ -167,67 +156,43 @@
         }
 
         actionBtn.onclick = async function() {
-            // THE OPTIONAL DOWNLOAD BUTTON
-            if (isReadyForDownload && taskData) {
+            // STEP 2: DOWNLOAD (Clicking after processing)
+            if (isReady && taskData) {
                 window.location.href = `https://${taskData.server}/v1/download/${taskData.task}`;
-                setTimeout(closeModal, 2000);
-                return;
+                setTimeout(closeModal, 2000); return;
             }
 
             if (selectedFileList.length === 0 && !processedBlob) return;
-            
-            status.style.display = 'block'; 
-            status.innerText = "ENGAGING ENGINE...";
+            status.style.display = 'block'; status.innerText = "ENGAGING ENGINE...";
             actionBtn.disabled = true;
 
             try {
-                // FIXED: Selecting binary index 0 correctly
+                // FIXED binary index to stop 400 errors
                 const binary = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-
-                const handshakeFd = new FormData();
-                handshakeFd.append('tool', currentTool);
+                const handshakeFd = new FormData(); handshakeFd.append('tool', currentTool);
                 
                 const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
                 taskData = await res.json();
 
                 if (taskData.status === "SUCCESS") {
-                    status.innerText = "UPLOADING ASSET...";
-                    const uploadFd = new FormData();
-                    uploadFd.append('task', taskData.task);
-                    uploadFd.append('file', binary);
+                    status.innerText = "UPLOADING...";
+                    const uploadFd = new FormData(); uploadFd.append('task', taskData.task); uploadFd.append('file', binary);
+                    await fetch(`https://${taskData.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: uploadFd });
 
-                    await fetch(`https://${taskData.server}/v1/upload`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${taskData.token}` },
-                        body: uploadFd
-                    });
-
-                    status.innerText = "EXECUTING ENGINE...";
-                    const procFd = new FormData();
-                    procFd.append('task', taskData.task);
-                    // Match technical ID mapping for process
+                    status.innerText = "CONVERTING...";
+                    const procFd = new FormData(); procFd.append('task', taskData.task);
                     procFd.append('tool', currentTool === 'pdfword' ? 'pdfocr' : currentTool);
                     
-                    const procRes = await fetch(`https://${taskData.server}/v1/process`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${taskData.token}` },
-                        body: procFd
-                    });
+                    const procRes = await fetch(`https://${taskData.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${taskData.token}` }, body: procFd });
 
                     if (procRes.ok) {
                         status.innerText = "PROCESS COMPLETE";
-                        isReadyForDownload = true;
-                        actionBtn.disabled = false;
+                        isReady = true; actionBtn.disabled = false;
                         actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
-                        actionBtn.style.background = "var(--brand-accent)";
-                        actionBtn.style.color = "#fff";
-                    } else { throw new Error(); }
+                        actionBtn.style.background = "var(--brand-accent)"; actionBtn.style.color = "#fff";
+                    }
                 }
-            } catch (err) {
-                console.error(err);
-                status.innerText = "ENGINE ERROR: RETRY";
-                actionBtn.disabled = false;
-            }
+            } catch (err) { status.innerText = "ERROR: RETRY"; actionBtn.disabled = false; }
         };
     </script>
 </body>
