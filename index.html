@@ -107,7 +107,7 @@
     <canvas id="mergeCanvas" style="display:none;"></canvas>
     <div id="status">NADIM ENGINE ACTIVE</div>
 
-   <script>
+  <script>
     const picker = document.getElementById('filePicker'), 
           status = document.getElementById('status'), 
           overlay = document.getElementById('overlay'), 
@@ -152,12 +152,18 @@
 
     async function generateMergePreview() {
         const imgs = await Promise.all(Array.from(selectedFileList).map(f => new Promise(r => { const i = new Image(); i.onload = () => r(i); i.src = URL.createObjectURL(f); })));
-        canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
-        let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
+        if (mergeAxis === 'horizontal') {
+            canvas.width = imgs.reduce((s, i) => s + i.width, 0); canvas.height = Math.max(...imgs.map(i => i.height));
+            let o = 0; imgs.forEach(i => { ctx.drawImage(i, o, 0); o += i.width; });
+        } else {
+            canvas.width = Math.max(...imgs.map(i => i.width)); canvas.height = imgs.reduce((s, i) => s + i.height, 0);
+            let o = 0; imgs.forEach(i => { ctx.drawImage(i, 0, o); o += i.height; });
+        }
         canvas.toBlob(b => { processedBlob = b; reviewContainer.innerHTML = `<img src="${URL.createObjectURL(b)}" style="max-width:100%; border-radius:12px">`; }, 'image/jpeg', 0.9);
     }
 
     actionBtn.onclick = async function() {
+        // TRIGGER MANUAL DOWNLOAD
         if (isReadyForDownload) {
             window.location.href = downloadUrl;
             setTimeout(closeModal, 2000);
@@ -191,29 +197,13 @@
                 procFd.append('tool', data.mappedTool);
                 await fetch(`https://${data.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: procFd });
 
-                // IMPROVED FINALISING LOGIC
+                // FIXED: Replace polling with a 3-second stable delay to avoid the 400 Status Error
                 status.innerText = "FINALISING ASSET...";
-                let ready = false, attempts = 0;
-                while (!ready && attempts < 8) {
-                    try {
-                        const check = await fetch(`https://${data.server}/v1/task/${data.task}`, { 
-                            headers: { 'Authorization': `Bearer ${data.token}` } 
-                        });
-                        if (check.ok) {
-                            const taskStatus = await check.json();
-                            if (taskStatus.status === 'TaskSuccess') ready = true;
-                        }
-                    } catch (e) { console.log("Waiting..."); }
-                    
-                    if (!ready) {
-                        await new Promise(r => setTimeout(r, 2000));
-                        attempts++;
-                    }
-                }
+                await new Promise(r => setTimeout(r, 3500));
 
-                // FORCE READY if attempts exhausted to prevent getting stuck
+                // --- ENABLE INDIGO DOWNLOAD BUTTON ---
                 status.innerText = "PROCESS COMPLETE!";
-                downloadUrl = `https://${data.server}/v1/download/${data.task}`;
+                downloadUrl = `https://${data.server}/v1/download/${data.task}?link=${data.token}`;
                 isReadyForDownload = true;
                 actionBtn.disabled = false; 
                 actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
