@@ -214,15 +214,23 @@
                 }
             }
 
-            status.innerText = "DOWNLOADING...";
-            window.location.href = `https://${data.server}/v1/download/${data.task}`;
-            setTimeout(() => { status.style.display = 'none'; closeModal(); }, 5000);
-        }
-    } catch (err) {
-        status.innerText = "ENGINE ERROR: RETRY";
-        setTimeout(() => status.style.display = 'none', 3000);
-    }
-};
+            if (ready) {
+    status.innerText = "DOWNLOADING...";
+    
+    // THE FIX: Pass the token as a query parameter for the final redirect
+    // This ensures the download node recognizes your session immediately.
+    const downloadUrl = `https://${data.server}/v1/download/${data.task}?link=${data.token}`;
+    
+    window.location.href = downloadUrl;
+    
+    setTimeout(() => { 
+        status.style.display = 'none'; 
+        closeModal(); 
+    }, 5000);
+} else {
+    throw new Error("Server timeout during finalisation");
+}
+        };
     </script>
 </body>
 </html>
