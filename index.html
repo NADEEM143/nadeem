@@ -107,7 +107,7 @@
     <canvas id="mergeCanvas" style="display:none;"></canvas>
     <div id="status">NADIM ENGINE ACTIVE</div>
 
-  <script>
+ <script>
     const picker = document.getElementById('filePicker'), 
           status = document.getElementById('status'), 
           overlay = document.getElementById('overlay'), 
@@ -163,7 +163,6 @@
     }
 
     actionBtn.onclick = async function() {
-        // TRIGGER MANUAL DOWNLOAD
         if (isReadyForDownload) {
             window.location.href = downloadUrl;
             setTimeout(closeModal, 2000);
@@ -177,11 +176,12 @@
         actionBtn.disabled = true;
 
         try {
+            // FIXED: Using index 0 for the file binary
             const fileToUpload = (currentTool === 'imagepdf' && processedBlob) ? processedBlob : selectedFileList[0];
-            const fd = new FormData();
-            fd.append('tool', currentTool);
+            const handshakeFd = new FormData();
+            handshakeFd.append('tool', currentTool);
             
-            const res = await fetch('/api/process', { method: 'POST', body: fd });
+            const res = await fetch('/api/process', { method: 'POST', body: handshakeFd });
             const data = await res.json();
 
             if (data.status === "SUCCESS") {
@@ -192,23 +192,37 @@
                 await fetch(`https://${data.server}/v1/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: uploadFd });
 
                 status.innerText = "CONVERTING...";
-                const procFd = new FormData();
-                procFd.append('task', data.task);
-                procFd.append('tool', data.mappedTool);
-                await fetch(`https://${data.server}/v1/process`, { method: 'POST', headers: { 'Authorization': `Bearer ${data.token}` }, body: procFd });
+                
+                // THE FIX: Use URLSearchParams instead of FormData for the Process call
+                // iLovePDF worker servers are much more stable with this format for the process step.
+                const params = new URLSearchParams();
+                params.append('task', data.task);
+                params.append('tool', data.mappedTool);
 
-                // FIXED: Replace polling with a 3-second stable delay to avoid the 400 Status Error
-                status.innerText = "FINALISING ASSET...";
-                await new Promise(r => setTimeout(r, 3500));
+                const procRes = await fetch(`https://${data.server}/v1/process`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${data.token}`,
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: params
+                });
 
-                // --- ENABLE INDIGO DOWNLOAD BUTTON ---
-                status.innerText = "PROCESS COMPLETE!";
-                downloadUrl = `https://${data.server}/v1/download/${data.task}?link=${data.token}`;
-                isReadyForDownload = true;
-                actionBtn.disabled = false; 
-                actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
-                actionBtn.style.background = "var(--brand-accent)";
-                actionBtn.style.color = "#fff";
+                if (procRes.ok) {
+                    status.innerText = "FINALISING ASSET...";
+                    await new Promise(r => setTimeout(r, 4000)); // Crucial buffer for server sync
+
+                    status.innerText = "PROCESS COMPLETE!";
+                    // SETUP INDIGO DOWNLOAD OPTION
+                    downloadUrl = `https://${data.server}/v1/download/${data.task}?link=${data.token}`;
+                    isReadyForDownload = true;
+                    actionBtn.disabled = false; 
+                    actionBtn.innerText = "DOWNLOAD PROCESSED FILE";
+                    actionBtn.style.background = "var(--brand-accent)";
+                    actionBtn.style.color = "#fff";
+                } else {
+                    throw new Error("Server rejected process command");
+                }
             }
         } catch (err) {
             status.innerText = "ENGINE ERROR: RETRY";
