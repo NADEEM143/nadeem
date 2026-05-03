@@ -1,59 +1,45 @@
-const axios = require('axios');
+const ILovePDFApi = require('@ilovepdf/ilovepdf-nodejs');
 const multiparty = require('multiparty');
 
-module.exports.config = { api: { bodyParser: false } };
+// Initialize the SDK with your environment variables
+const instance = new ILovePDFApi(process.env.ILOVEPDF_PUBLIC_KEY, process.env.ILOVEPDF_SECRET_KEY);
 
 module.exports = async (req, res) => {
-    // 1. ADD CORS HEADERS (The fix recommended by iLovePDF Support)
+    // 1. HANDLE CORS PREFLIGHT (Fixes the red 'X' in your test image)
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     if (req.method === 'OPTIONS') return res.status(200).end();
 
+    // 2. PARSE THE INCOMING FILE
     const form = new multiparty.Form();
     form.parse(req, async (err, fields, files) => {
-        if (err || !fields.tool) return res.status(400).json({ error: "No tool selected" });
+        if (err) return res.status(500).json({ status: "ERROR", details: "File Parse Failed" });
+
+        const tool = fields.tool[0];
+        const file = files.file[0];
 
         try {
-            // Pick the tool out of the Vercel array
-            const rawTool = Array.isArray(fields.tool) ? fields.tool[0] : fields.tool;
-
-            // 2. THE MASTER MAPPER
-            // This ensures the engine receives the official ID (e.g., 'officepdf')
-            const toolMap = {
-                'officepdf': 'officepdf',
-                'pdfword': 'pdfocr',
-                'compress': 'compress',
-                'imagepdf': 'imagepdf'
-            };
+            // 3. USE THE SDK (Option B from earlier)
+            // This runs on the server, so it bypasses all browser CORS blocks
+            const task = instance.newTask(tool);
             
-            const tool = toolMap[rawTool.toLowerCase().trim()] || rawTool.toLowerCase().trim();
+            await task.addFile(file.path);
+            await task.process();
+            await task.download('./output.pdf'); // Or stream it back to the user
 
-            // 3. AUTHENTICATION
-            const auth = await axios.post('https://api.ilovepdf.com/v1/auth', {
-                public_key: process.env.ILOVEPDF_PUBLIC_KEY,
-                secret_key: process.env.ILOVEPDF_SECRET_KEY
-            });
-            const token = auth.data.token;
-
-            // 4. START TASK (Fixed variable name to 'tool')
-            const start = await axios.get(`https://api.ilovepdf.com/v1/start/${tool}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            // 5. SUCCESS
+            // Return the success data back to your Elite Design
             res.status(200).json({
                 status: "SUCCESS",
-                token: token,
-                server: start.data.server,
-                task: start.data.task
+                server: task.server,
+                task: task.taskId,
+                token: task.token // Pass the session token back for the final download
             });
 
         } catch (e) {
-            const msg = e.response?.data || e.message;
-            console.error("PROXY_ERROR:", msg);
-            res.status(500).json({ error: msg });
+            console.error(e);
+            res.status(500).json({ status: "ERROR", details: e.message });
         }
     });
 };
